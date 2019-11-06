@@ -20,13 +20,14 @@
 #define MIN(a,b) (((a) <= (b)) ? (a) : (b))
 #define BULK_EP_OUT 0x01
 #define BULK_EP_IN 0x82
-#define MAX_PKT_SIZE 512
+#define BUFFER_SIZE 512
 
 // Driver configuration
 #define SUCCESS 0
 #define DEVICE_NAME "arduano"
 int arduano_major = 245;
 static int device_open = 0; /* Is device open? */
+static unsigned char memory_buffer[BUFFER_SIZE];
 
 // USB configurations
 static struct usb_device *arduano_device;
@@ -38,8 +39,8 @@ int arduino_open(struct inode *inode, struct file *filp);
 int arduino_release(struct inode *inode, struct file *filp);
 
 // reading and writing operations
-ssize_t arduino_read(struct file *filp, char *buf, size_t count, loff_t *offset);
-ssize_t arduino_write(struct file *filp, const char *buf, size_t count, loff_t *offset);
+ssize_t arduino_read(struct file *filp, char *buffer, size_t count, loff_t *offset);
+ssize_t arduino_write(struct file *filp, const char *buffer, size_t count, loff_t *offset);
 
 // driver operations
 int arduino_init(void);
@@ -89,20 +90,20 @@ static int arduino_probe(struct usb_interface *interface, const struct usb_devic
     arduano_device = interface_to_usbdev(interface);
     arduano_class.name = "arduano%d";
     arduano_class.fops = &arduano_fops;
-    printk(KERN_INFO "Arduano Driver: arduino driver (%04X:%04X) Connected\n", id->idVendor, id->idProduct);
-    printk(KERN_INFO "Arduano Driver: trying to connect arduino driver to a device");
+    printk(KERN_INFO "Arduano Driver: Arduino driver (%04X:%04X) Connected\n", id->idVendor, id->idProduct);
+    printk(KERN_INFO "Arduano Driver: Trying to connect arduino driver to a device");
     if ((retval = usb_register_dev(interface, &arduano_class)) < 0) {
         /* Something prevented us from registering this driver */
         printk(KERN_ERR "Arduano Driver: Not able to get a minor for this device.");
     } else {
         printk(KERN_INFO "Arduano Driver: Minor obtained: %d\n", interface->minor);
-        printk(KERN_INFO "Arduano Driver: Device is: %s\n", arduano_class.name);
+        printk(KERN_INFO "Arduano Driver: Device is: arduano%d\n", interface->minor);
     }
     return retval;
 }
 static void arduino_disconnect(struct usb_interface *interface) {
 	usb_deregister_dev(interface, &arduano_class);
-    printk(KERN_INFO "Arduano Driver: arduino Disconnected\n");
+    printk(KERN_INFO "Arduano Driver: Arduino Disconnected\n");
 }
 
 
@@ -123,19 +124,33 @@ void arduino_exit(void) {
 }
 
 
-ssize_t arduino_read(struct file *filp, char *bufStoreData, size_t bufCount, loff_t *curOffset) {
+ssize_t arduino_read(struct file *filp, char *buffer, size_t count, loff_t *curOffset) {
+	printk(KERN_INFO "Arduano Driver: Reading %ld from device\n", count);
+    int retval;
+    int read_count;
 
-    //printk(KERN_INFO "Arduino: Reading from device");
-    //ret = copy_to_user(bufStoreData, arduino.data, bufCount);
-    int count = 0;
-    return count;
+    /* Read the data from the bulk endpoint */
+    retval = usb_bulk_msg(arduano_device, usb_rcvbulkpipe(arduano_device, BULK_EP_IN),
+                          memory_buffer, BUFFER_SIZE, &read_count, 5000);
+    if (retval) {
+        printk(KERN_ERR "Arduano Driver: Bulk message returned %d\n", retval);
+        return retval;
+    }
+    if (copy_to_user(buffer, memory_buffer, MIN(count, read_count))) {
+        return -EFAULT;
+    }
+
+    return MIN(count, read_count);
 }
-ssize_t arduino_write(struct file *filp, const char *bufSourceData, size_t bufCount, loff_t *curOffset) {
+ssize_t arduino_write(struct file *filp, const char *buffer, size_t count, loff_t *curOffset) {
+	printk(KERN_INFO "Arduano Driver: Writing to device\n");
+	copy_from_user(memory_buffer,buffer,count);
+	return count;
+	// if(buffer){
 
+	// }
     //printk(KERN_INFO "Arduino: writing to device");
-    //ret = copy_from_user( arduino.data, bufSourceData, bufCount);
-    int count = 0;
-    return count;
+    //ret = copy_from_user( arduino.data, bufSourceData, count);
 }
 
 module_init(arduino_init);
@@ -143,4 +158,4 @@ module_exit(arduino_exit);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("ElTetias");
-MODULE_DESCRIPTION("USB arduino Registration Driver");
+MODULE_DESCRIPTION("USB arduano Registration Driver");
