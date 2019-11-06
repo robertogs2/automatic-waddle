@@ -97,9 +97,6 @@ void arduino_exit(void) {
     printk(KERN_INFO "Arduano Driver: UnRegistration complete! \n");
 }
 
-/******************************************************************************************************
-*************************************   1st Problem**************************************************
-******************************************************************************************************/
 ssize_t arduino_read(struct file *filp, char *bufStoreData, size_t bufCount, loff_t *curOffset) {
 
     //printk(KERN_INFO "Arduino: Reading from device");
@@ -108,9 +105,6 @@ ssize_t arduino_read(struct file *filp, char *bufStoreData, size_t bufCount, lof
     return count;
 }
 
-/******************************************************************************************************
-*************************************   2nd Problem**************************************************
-******************************************************************************************************/
 ssize_t arduino_write(struct file *filp, const char *bufSourceData, size_t bufCount, loff_t *curOffset) {
 
     //printk(KERN_INFO "Arduino: writing to device");
