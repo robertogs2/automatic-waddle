@@ -123,10 +123,6 @@ static int acm_ctrl_msg(struct acm *acm, int request, int value,
                              acm->control->altsetting[0].desc.bInterfaceNumber,
                              buf, len, 5000);
 
-    dev_dbg(&acm->control->dev,
-            "%s - rq 0x%02x, val %#x, len %#x, result %d\n",
-            __func__, request, value, len, retval);
-
     usb_autopm_put_interface(acm->control);
 
     return retval < 0 ? retval : 0;
@@ -257,24 +253,16 @@ static void acm_process_notification(struct acm *acm, unsigned char *buf) {
 
     switch (dr->bNotificationType) {
     case USB_CDC_NOTIFY_NETWORK_CONNECTION:
-        dev_dbg(&acm->control->dev,
-                "%s - network connection: %d\n", __func__, dr->wValue);
         break;
 
     case USB_CDC_NOTIFY_SERIAL_STATE:
         if (le16_to_cpu(dr->wLength) != 2) {
-            dev_dbg(&acm->control->dev,
-                    "%s - malformed serial state\n", __func__);
             break;
         }
 
         newctrl = get_unaligned_le16(data);
-        dev_dbg(&acm->control->dev,
-                "%s - serial state: 0x%x\n", __func__, newctrl);
 
         if (!acm->clocal && (acm->ctrlin & ~newctrl & ACM_CTRL_DCD)) {
-            dev_dbg(&acm->control->dev,
-                    "%s - calling hangup\n", __func__);
             tty_port_tty_hangup(&acm->port, false);
         }
 
@@ -305,10 +293,7 @@ static void acm_process_notification(struct acm *acm, unsigned char *buf) {
         break;
 
     default:
-        dev_dbg(&acm->control->dev,
-                "%s - unknown notification %d received: index %d len %d\n",
-                __func__,
-                dr->bNotificationType, dr->wIndex, dr->wLength);
+        break;
     }
 }
 
@@ -332,14 +317,8 @@ static void acm_ctrl_irq(struct urb *urb) {
     case -ESHUTDOWN:
         /* this urb is terminated, clean up */
         acm->nb_index = 0;
-        dev_dbg(&acm->control->dev,
-                "%s - urb shutting down with status: %d\n",
-                __func__, status);
         return;
     default:
-        dev_dbg(&acm->control->dev,
-                "%s - nonzero urb status received: %d\n",
-                __func__, status);
         goto exit;
     }
 
@@ -411,9 +390,6 @@ static int acm_submit_read_urb(struct acm *acm, int index, gfp_t mem_flags) {
         set_bit(index, &acm->read_urbs_free);
         return res;
     } 
-    // else {
-    //     dev_vdbg(&acm->data->dev, "submitted urb %d\n", index);
-    // }
 
     return 0;
 }
@@ -449,13 +425,9 @@ static void acm_read_bulk_callback(struct urb *urb) {
     unsigned long flags;
     int status = urb->status;
 
-    // dev_vdbg(&acm->data->dev, "got urb %d, len %d, status %d\n",
-    //          rb->index, urb->actual_length, status);
-
     set_bit(rb->index, &acm->read_urbs_free);
 
     if (!acm->dev) {
-        dev_dbg(&acm->data->dev, "%s - disconnected\n", __func__);
         return;
     }
 
@@ -471,14 +443,8 @@ static void acm_read_bulk_callback(struct urb *urb) {
     case -ENOENT:
     case -ECONNRESET:
     case -ESHUTDOWN:
-        dev_dbg(&acm->data->dev,
-                "%s - urb shutting down with status: %d\n",
-                __func__, status);
         return;
     default:
-        dev_dbg(&acm->data->dev,
-                "%s - nonzero urb status received: %d\n",
-                __func__, status);
         break;
     }
 
@@ -505,13 +471,7 @@ static void acm_write_bulk(struct urb *urb) {
     struct acm_wb *wb = urb->context;
     struct acm *acm = wb->instance;
     unsigned long flags;
-    int status = urb->status;
 
-    // if (status || (urb->actual_length != urb->transfer_buffer_length))
-    //     dev_vdbg(&acm->data->dev, "wrote len %d/%d, status %d\n",
-    //              urb->actual_length,
-    //              urb->transfer_buffer_length,
-    //              status);
 
     spin_lock_irqsave(&acm->write_lock, flags);
     acm_write_done(acm, wb);
@@ -663,7 +623,6 @@ static void acm_port_destruct(struct tty_port *port) {
 
     acm_release_minor(acm);
     usb_put_intf(acm->control);
-    //kfree(acm->country_codes);
     kfree(acm);
 }
 
@@ -729,8 +688,6 @@ static int acm_tty_write(struct tty_struct *tty,
     if (!count)
         return 0;
 
-    //dev_vdbg(&acm->data->dev, "%d bytes from tty layer\n", count);
-
     spin_lock_irqsave(&acm->write_lock, flags);
     wbn = acm_wb_alloc(acm);
     if (wbn < 0) {
@@ -746,7 +703,6 @@ static int acm_tty_write(struct tty_struct *tty,
     }
 
     count = (count > acm->writesize) ? acm->writesize : count;
-    //dev_vdbg(&acm->data->dev, "writing %d bytes\n", count);
     memcpy(wb->buf, buf, count);
     wb->len = count;
 
@@ -895,9 +851,6 @@ static int acm_tty_break_ctl(struct tty_struct *tty, int state) {
     int retval;
 
     retval = acm_send_break(acm, state ? 0xffff : 0);
-    if (retval < 0)
-        dev_dbg(&acm->control->dev,
-                "%s - send break failed\n", __func__);
     return retval;
 }
 
@@ -1110,11 +1063,6 @@ static void acm_tty_set_termios(struct tty_struct *tty,
 
     if (memcmp(&acm->line, &newline, sizeof newline)) {
         memcpy(&acm->line, &newline, sizeof newline);
-        dev_dbg(&acm->control->dev, "%s - set line: %d %d %d %d\n",
-                __func__,
-                le32_to_cpu(newline.dwDTERate),
-                newline.bCharFormat, newline.bParityType,
-                newline.bDataBits);
         acm_set_line(acm, &acm->line);
     }
 }
@@ -1232,8 +1180,6 @@ static int acm_probe(struct usb_interface *intf,
         if (intf->cur_altsetting->endpoint &&
                 intf->cur_altsetting->endpoint->extralen &&
                 intf->cur_altsetting->endpoint->extra) {
-            dev_dbg(&intf->dev,
-                    "Seeking extra descriptors on endpoint\n");
             buflen = intf->cur_altsetting->endpoint->extralen;
             buffer = intf->cur_altsetting->endpoint->extra;
         } else {
@@ -1251,8 +1197,7 @@ static int acm_probe(struct usb_interface *intf,
 
     if (!union_header) {
         if (call_intf_num > 0) {
-            dev_dbg(&intf->dev, "No union descriptor, using call management descriptor\n");
-            /* quirks for Droids MuIn LCD */
+            /* quirks for Droids MuIn LCD TODO*/ 
             if (quirks & NO_DATA_INTERFACE) {
                 data_interface = usb_ifnum_to_if(usb_dev, 0);
             } else {
@@ -1262,10 +1207,8 @@ static int acm_probe(struct usb_interface *intf,
             control_interface = intf;
         } else {
             if (intf->cur_altsetting->desc.bNumEndpoints != 3) {
-                dev_dbg(&intf->dev, "No union descriptor, giving up\n");
                 return -ENODEV;
             } else {
-                dev_warn(&intf->dev, "No union descriptor, testing for castrated device\n");
                 combined_interfaces = 1;
                 control_interface = data_interface = intf;
                 goto look_for_collapsed_interface;
@@ -1278,21 +1221,16 @@ static int acm_probe(struct usb_interface *intf,
     }
 
     if (!control_interface || !data_interface) {
-        dev_dbg(&intf->dev, "no interfaces\n");
         return -ENODEV;
     }
     if (!data_interface->cur_altsetting || !control_interface->cur_altsetting)
         return -ENODEV;
 
-    if (data_intf_num != call_intf_num)
-        dev_dbg(&intf->dev, "Separate call control interface. That is not fully supported.\n");
-
     if (control_interface == data_interface) {
         /* some broken devices designed for windows work this way */
-        dev_warn(&intf->dev, "Control and data interfaces are not separated!\n");
         combined_interfaces = 1;
         /* a popular other OS doesn't use it */
-        quirks |= NO_CAP_LINE;
+        quirks |= NO_CAP_LINE; // TODO
         if (data_interface->cur_altsetting->desc.bNumEndpoints != 3) {
             dev_err(&intf->dev, "This needs exactly 3 endpoints\n");
             return -EINVAL;
@@ -1313,8 +1251,6 @@ skip_normal_probe:
             != CDC_DATA_INTERFACE_TYPE) {
         if (control_interface->cur_altsetting->desc.bInterfaceClass
                 == CDC_DATA_INTERFACE_TYPE) {
-            dev_dbg(&intf->dev,
-                    "Your device has switched interfaces.\n");
             swap(control_interface, data_interface);
         } else {
             return -EINVAL;
@@ -1326,8 +1262,6 @@ skip_normal_probe:
         return -ENODEV;
 
     if (!combined_interfaces && usb_interface_claimed(data_interface)) {
-        /* valid in this context */
-        dev_dbg(&intf->dev, "The data interface isn't available\n");
         return -EBUSY;
     }
 
@@ -1344,12 +1278,9 @@ skip_normal_probe:
     /* workaround for switched endpoints */
     if (!usb_endpoint_dir_in(epread)) {
         /* descriptors are swapped */
-        dev_dbg(&intf->dev,
-                "The data interface has switched endpoints\n");
         swap(epread, epwrite);
     }
 made_compressed_probe:
-    dev_dbg(&intf->dev, "interfaces are valid\n");
 
     acm = kzalloc(sizeof(struct acm), GFP_KERNEL);
     if (acm == NULL)
