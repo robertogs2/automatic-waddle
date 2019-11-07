@@ -1,20 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0+
-/*
- * arduano.c
- *
- * Copyright (c) 1999 Armin Fuerst  <fuerst@in.tum.de>
- * Copyright (c) 1999 Pavel Machek  <pavel@ucw.cz>
- * Copyright (c) 1999 Johannes Erdfelt  <johannes@erdfelt.com>
- * Copyright (c) 2000 Vojtech Pavlik    <vojtech@suse.cz>
- * Copyright (c) 2004 Oliver Neukum <oliver@neukum.name>
- * Copyright (c) 2005 David Kubicek <dave@awk.cz>
- * Copyright (c) 2011 Johan Hovold  <jhovold@gmail.com>
- *
- * USB Abstract Control Model driver for USB modems and ISDN adapters
- *
- * Sponsored by SuSE
- */
-
 #undef DEBUG
 #undef VERBOSE_DEBUG
 
@@ -39,10 +22,6 @@
 #include <linux/list.h>
 
 #include "arduano.h"
-
-
-#define DRIVER_AUTHOR "Armin Fuerst, Pavel Machek, Johannes Erdfelt, Vojtech Pavlik, David Kubicek, Johan Hovold"
-#define DRIVER_DESC "USB Abstract Control Model driver for USB modems and ISDN adapters"
 
 static struct usb_driver acm_driver;
 static struct tty_driver *acm_tty_driver;
@@ -224,9 +203,6 @@ static int acm_start_wb(struct acm *acm, struct acm_wb *wb) {
 
     rc = usb_submit_urb(wb->urb, GFP_ATOMIC);
     if (rc < 0) {
-        dev_err(&acm->data->dev,
-                "%s - usb_submit_urb(write bulk) failed: %d\n",
-                __func__, rc);
         acm_write_done(acm, wb);
     }
     return rc;
@@ -368,9 +344,6 @@ static void acm_ctrl_irq(struct urb *urb) {
 
 exit:
     retval = usb_submit_urb(urb, GFP_ATOMIC);
-    if (retval && retval != -EPERM)
-        dev_err(&acm->control->dev,
-                "%s - usb_submit_urb failed: %d\n", __func__, retval);
 }
 
 static int acm_submit_read_urb(struct acm *acm, int index, gfp_t mem_flags) {
@@ -382,11 +355,6 @@ static int acm_submit_read_urb(struct acm *acm, int index, gfp_t mem_flags) {
 
     res = usb_submit_urb(acm->read_urbs[index], mem_flags);
     if (res) {
-        if (res != -EPERM) {
-            dev_err(&acm->data->dev,
-                    "urb %d failed submission with %d\n",
-                    index, res);
-        }
         set_bit(index, &acm->read_urbs_free);
         return res;
     } 
@@ -551,8 +519,6 @@ static void acm_port_dtr_rts(struct tty_port *port, int raise) {
     acm->ctrlout = val;
 
     res = acm_set_control(acm, val);
-    if (res && (acm->ctrl_caps & USB_CDC_CAP_LINE))
-        dev_err(&acm->control->dev, "failed to set dtr/rts\n");
 }
 
 static int acm_port_activate(struct tty_port *port, struct tty_struct *tty) {
@@ -579,8 +545,6 @@ static int acm_port_activate(struct tty_port *port, struct tty_struct *tty) {
     acm->ctrlurb->dev = acm->dev;
     retval = usb_submit_urb(acm->ctrlurb, GFP_KERNEL);
     if (retval) {
-        dev_err(&acm->control->dev,
-                "%s - usb_submit_urb(ctrl irq) failed\n", __func__);
         goto error_submit_urb;
     }
 
@@ -1169,7 +1133,6 @@ static int acm_probe(struct usb_interface *intf,
 
     /* normal probing*/
     if (!buffer) {
-        dev_err(&intf->dev, "Weird descriptor references\n");
         return -EINVAL;
     }
 
@@ -1183,8 +1146,6 @@ static int acm_probe(struct usb_interface *intf,
             buflen = intf->cur_altsetting->endpoint->extralen;
             buffer = intf->cur_altsetting->endpoint->extra;
         } else {
-            dev_err(&intf->dev,
-                    "Zero length descriptor references\n");
             return -EINVAL;
         }
     }
@@ -1232,7 +1193,6 @@ static int acm_probe(struct usb_interface *intf,
         /* a popular other OS doesn't use it */
         quirks |= NO_CAP_LINE; // TODO
         if (data_interface->cur_altsetting->desc.bNumEndpoints != 3) {
-            dev_err(&intf->dev, "This needs exactly 3 endpoints\n");
             return -EINVAL;
         }
 look_for_collapsed_interface:
@@ -1491,79 +1451,79 @@ static void acm_disconnect(struct usb_interface *intf) {
     tty_port_put(&acm->port);
 }
 
-#ifdef CONFIG_PM
-static int acm_suspend(struct usb_interface *intf, pm_message_t message) {
-    //printk(KERN_INFO "Arduano Driver: acm_suspend arduino module\n");
-    struct acm *acm = usb_get_intfdata(intf);
-    int cnt;
+// #ifdef CONFIG_PM
+// static int acm_suspend(struct usb_interface *intf, pm_message_t message) {
+//     //printk(KERN_INFO "Arduano Driver: acm_suspend arduino module\n");
+//     struct acm *acm = usb_get_intfdata(intf);
+//     int cnt;
 
-    spin_lock_irq(&acm->write_lock);
-    if (PMSG_IS_AUTO(message)) {
-        if (acm->transmitting) {
-            spin_unlock_irq(&acm->write_lock);
-            return -EBUSY;
-        }
-    }
-    cnt = acm->susp_count++;
-    spin_unlock_irq(&acm->write_lock);
+//     spin_lock_irq(&acm->write_lock);
+//     if (PMSG_IS_AUTO(message)) {
+//         if (acm->transmitting) {
+//             spin_unlock_irq(&acm->write_lock);
+//             return -EBUSY;
+//         }
+//     }
+//     cnt = acm->susp_count++;
+//     spin_unlock_irq(&acm->write_lock);
 
-    if (cnt)
-        return 0;
+//     if (cnt)
+//         return 0;
 
-    acm_kill_urbs(acm);
-    cancel_work_sync(&acm->work);
+//     acm_kill_urbs(acm);
+//     cancel_work_sync(&acm->work);
 
-    return 0;
-}
+//     return 0;
+// }
 
-static int acm_resume(struct usb_interface *intf) {
-    //printk(KERN_INFO "Arduano Driver: acm_resume arduino module\n");
-    struct acm *acm = usb_get_intfdata(intf);
-    struct urb *urb;
-    int rv = 0;
+// static int acm_resume(struct usb_interface *intf) {
+//     //printk(KERN_INFO "Arduano Driver: acm_resume arduino module\n");
+//     struct acm *acm = usb_get_intfdata(intf);
+//     struct urb *urb;
+//     int rv = 0;
 
-    spin_lock_irq(&acm->write_lock);
+//     spin_lock_irq(&acm->write_lock);
 
-    if (--acm->susp_count)
-        goto out;
+//     if (--acm->susp_count)
+//         goto out;
 
-    if (tty_port_initialized(&acm->port)) {
-        rv = usb_submit_urb(acm->ctrlurb, GFP_ATOMIC);
+//     if (tty_port_initialized(&acm->port)) {
+//         rv = usb_submit_urb(acm->ctrlurb, GFP_ATOMIC);
 
-        for (;;) {
-            urb = usb_get_from_anchor(&acm->delayed);
-            if (!urb)
-                break;
+//         for (;;) {
+//             urb = usb_get_from_anchor(&acm->delayed);
+//             if (!urb)
+//                 break;
 
-            acm_start_wb(acm, urb->context);
-        }
+//             acm_start_wb(acm, urb->context);
+//         }
 
-        /*
-         * delayed error checking because we must
-         * do the write path at all cost
-         */
-        if (rv < 0)
-            goto out;
+//         /*
+//          * delayed error checking because we must
+//          * do the write path at all cost
+//          */
+//         if (rv < 0)
+//             goto out;
 
-        rv = acm_submit_read_urbs(acm, GFP_ATOMIC);
-    }
-out:
-    spin_unlock_irq(&acm->write_lock);
+//         rv = acm_submit_read_urbs(acm, GFP_ATOMIC);
+//     }
+// out:
+//     spin_unlock_irq(&acm->write_lock);
 
-    return rv;
-}
+//     return rv;
+// }
 
-static int acm_reset_resume(struct usb_interface *intf) {
-    //printk(KERN_INFO "Arduano Driver: acm_reset_resume arduino module\n");
-    struct acm *acm = usb_get_intfdata(intf);
+// static int acm_reset_resume(struct usb_interface *intf) {
+//     //printk(KERN_INFO "Arduano Driver: acm_reset_resume arduino module\n");
+//     struct acm *acm = usb_get_intfdata(intf);
 
-    if (tty_port_initialized(&acm->port))
-        tty_port_tty_hangup(&acm->port, false);
+//     if (tty_port_initialized(&acm->port))
+//         tty_port_tty_hangup(&acm->port, false);
 
-    return acm_resume(intf);
-}
+//     return acm_resume(intf);
+// }
 
-#endif /* CONFIG_PM */
+// #endif /* CONFIG_PM */
 
 static int acm_pre_reset(struct usb_interface *intf) {
     //printk(KERN_INFO "Arduano Driver: acm_pre_reset arduino module\n");
@@ -1585,11 +1545,11 @@ static struct usb_driver acm_driver = {
     .name =     "Arduino USB driver",
     .probe =    acm_probe,
     .disconnect =   acm_disconnect,
-#ifdef CONFIG_PM
-    .suspend =  acm_suspend,
-    .resume =   acm_resume,
-    .reset_resume = acm_reset_resume,
-#endif
+// #ifdef CONFIG_PM
+//     .suspend =  acm_suspend,
+//     .resume =   acm_resume,
+//     .reset_resume = acm_reset_resume,
+// #endif
     .pre_reset =    acm_pre_reset,
     .id_table = acm_ids,
 #ifdef CONFIG_PM
@@ -1674,7 +1634,5 @@ static void __exit acm_exit(void) {
 module_init(acm_init);
 module_exit(acm_exit);
 
-MODULE_AUTHOR(DRIVER_AUTHOR);
-MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_CHARDEV_MAJOR(ACM_TTY_MAJOR);
