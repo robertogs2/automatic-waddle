@@ -626,13 +626,6 @@ static void acm_tty_cleanup(struct tty_struct *tty) {
     tty_port_put(&acm->port);
 }
 
-static void acm_tty_hangup(struct tty_struct *tty) {
-    printk(KERN_INFO "Arduano Driver: acm_tty_hangup arduino module\n");
-    struct acm *acm = tty->driver_data;
-
-    tty_port_hangup(&acm->port);
-}
-
 static void acm_tty_close(struct tty_struct *tty, struct file *filp) {
     //printk(KERN_INFO "Arduano Driver: acm_tty_close arduino module\n");
     struct acm *acm = tty->driver_data;
@@ -783,30 +776,6 @@ static int acm_tty_chars_in_buffer(struct tty_struct *tty) {
      * This is inaccurate (overcounts), but it works.
      */
     return (ACM_NW - acm_wb_is_avail(acm)) * acm->writesize;
-}
-
-static void acm_tty_throttle(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: acm_tty_throttle arduino module\n");
-    struct acm *acm = tty->driver_data;
-
-    spin_lock_irq(&acm->read_lock);
-    acm->throttle_req = 1;
-    spin_unlock_irq(&acm->read_lock);
-}
-
-static void acm_tty_unthrottle(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: acm_tty_unthrottle arduino module\n");
-    struct acm *acm = tty->driver_data;
-    unsigned int was_throttled;
-
-    spin_lock_irq(&acm->read_lock);
-    was_throttled = acm->throttled;
-    acm->throttled = 0;
-    acm->throttle_req = 0;
-    spin_unlock_irq(&acm->read_lock);
-
-    if (was_throttled)
-        acm_submit_read_urbs(acm, GFP_KERNEL);
 }
 
 static int acm_tty_break_ctl(struct tty_struct *tty, int state) {
@@ -1478,20 +1447,17 @@ static const struct tty_operations acm_ops = {
     .open =         acm_tty_open,
     .close =        acm_tty_close,
     .cleanup =      acm_tty_cleanup,
-    //.hangup =       acm_tty_hangup,
     .write =        acm_tty_write,
     .put_char =     acm_tty_put_char,
     .flush_chars =      acm_tty_flush_chars,
     .write_room =       acm_tty_write_room,
     .ioctl =        acm_tty_ioctl,
-    //.throttle =     acm_tty_throttle,
-    //.unthrottle =       acm_tty_unthrottle,
     .chars_in_buffer =  acm_tty_chars_in_buffer,
-    .break_ctl =        acm_tty_break_ctl,
+    //.break_ctl =        acm_tty_break_ctl,
     .set_termios =      acm_tty_set_termios,
     .tiocmget =     acm_tty_tiocmget,
     .tiocmset =     acm_tty_tiocmset,
-    .get_icount =       acm_tty_get_icount,
+    //.get_icount =       acm_tty_get_icount,
 };
 
 /*
