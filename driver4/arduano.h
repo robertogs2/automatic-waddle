@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  *
- * Includes for cdc-acm.c
+ * Includes for cdc-arduino.c
  *
  * Mainly take from usbnet's cdc-ether part
  *
@@ -19,34 +19,34 @@
  * Major and minor numbers.
  */
 
-#define ACM_TTY_MAJOR		166
-#define ACM_TTY_MINORS		256
+#define ARDUINO_TTY_MAJOR		166
+#define ARDUINO_TTY_MINORS		256
 
 /*
  * Requests.
  */
 
-#define USB_RT_ACM		(USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+#define USB_RT_ARDUINO		(USB_TYPE_CLASS | USB_RECIP_INTERFACE)
 
 /*
  * Output control lines.
  */
 
-#define ACM_CTRL_DTR		0x01
-#define ACM_CTRL_RTS		0x02
+#define ARDUINO_CTRL_DTR		0x01
+#define ARDUINO_CTRL_RTS		0x02
 
 /*
  * Input control lines and line errors.
  */
 
-#define ACM_CTRL_DCD		0x01
-#define ACM_CTRL_DSR		0x02
-#define ACM_CTRL_BRK		0x04
-#define ACM_CTRL_RI		0x08
+#define ARDUINO_CTRL_DCD		0x01
+#define ARDUINO_CTRL_DSR		0x02
+#define ARDUINO_CTRL_BRK		0x04
+#define ARDUINO_CTRL_RI		0x08
 
-#define ACM_CTRL_FRAMING	0x10
-#define ACM_CTRL_PARITY		0x20
-#define ACM_CTRL_OVERRUN	0x40
+#define ARDUINO_CTRL_FRAMING	0x10
+#define ARDUINO_CTRL_PARITY		0x20
+#define ARDUINO_CTRL_OVERRUN	0x40
 
 /*
  * Internal driver structures.
@@ -60,27 +60,27 @@
  * when processing onlcr, so we only need 2 buffers. These values must be
  * powers of 2.
  */
-#define ACM_NW  16
-#define ACM_NR  16
+#define ARDUINO_NW  16
+#define ARDUINO_NR  16
 
-struct acm_wb {
+struct arduino_wb {
 	unsigned char *buf;
 	dma_addr_t dmah;
 	int len;
 	int use;
 	struct urb		*urb;
-	struct acm		*instance;
+	struct arduino		*instance;
 };
 
-struct acm_rb {
-	int			size;
-	unsigned char		*base;
-	dma_addr_t		dma;
-	int			index;
-	struct acm		*instance;
+struct arduino_rb {
+	int					size;
+	unsigned char*		base;
+	dma_addr_t			dma;
+	int					index;
+	struct arduino*			instance;
 };
 
-struct acm {
+struct arduino {
 	struct usb_device *dev;				/* the corresponding usb device */
 	struct usb_interface *control;			/* control interface */
 	struct usb_interface *data;			/* data interface */
@@ -89,11 +89,11 @@ struct acm {
 	struct urb *ctrlurb;				/* urbs */
 	u8 *ctrl_buffer;				/* buffers of urbs */
 	dma_addr_t ctrl_dma;				/* dma handles of buffers */
-	struct acm_wb wb[ACM_NW];
+	struct arduino_wb wb[ARDUINO_NW];
 	unsigned long read_urbs_free;
-	struct urb *read_urbs[ACM_NR];
-	struct acm_rb read_buffers[ACM_NR];
-	struct acm_wb *putbuffer;			/* for acm_tty_put_char() */
+	struct urb *read_urbs[ARDUINO_NR];
+	struct arduino_rb read_buffers[ARDUINO_NR];
+	struct arduino_wb *putbuffer;			/* for arduino_tty_put_char() */
 	int rx_buflimit;
 	spinlock_t read_lock;
 	u8 *notification_buffer;			/* to reassemble fragmented notifications */
@@ -115,7 +115,7 @@ struct acm {
 	wait_queue_head_t wioctl;			/* for ioctl */
 	unsigned int writesize;				/* max packet size for the output bulk endpoint */
 	unsigned int readsize,ctrlsize;			/* buffer sizes for freeing */
-	unsigned int minor;				/* acm minor number */
+	unsigned int minor;				/* arduino minor number */
 	unsigned char clocal;				/* termios CLOCAL */
 	unsigned int ctrl_caps;				/* control capabilities from the class specific header */
 	unsigned int susp_count;			/* number of suspended interfaces */
