@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  *
- * Includes for cdc-arduino.c
+ * Includes for arduino.c
  *
  * Mainly take from usbnet's cdc-ether part
  *

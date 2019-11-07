@@ -21,7 +21,7 @@
 #include <linux/idr.h>
 #include <linux/list.h>
 
-#include "arduano.h"
+#include "arduino.h"
 
 static struct usb_driver arduino_driver;
 static struct tty_driver *arduino_tty_driver;
@@ -41,7 +41,7 @@ static void arduino_tty_set_termios(struct tty_struct *tty,
  * its refcount and return it with its mutex held.
  */
 static struct arduino *arduino_get_by_minor(unsigned int minor) {
-    //printk(KERN_INFO "Arduano Driver: arduino_get_by_minor arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_get_by_minor arduino module\n");
 
     struct arduino *arduino;
 
@@ -65,7 +65,7 @@ static struct arduino *arduino_get_by_minor(unsigned int minor) {
  * Try to find an available minor number and if found, associate it with 'arduino'.
  */
 static int arduino_alloc_minor(struct arduino *arduino) {    
-    //printk(KERN_INFO "Arduano Driver: arduino_alloc_minor arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_alloc_minor arduino module\n");
 
     int minor;
 
@@ -78,7 +78,7 @@ static int arduino_alloc_minor(struct arduino *arduino) {
 
 /* Release the minor number associated with 'arduino'.  */
 static void arduino_release_minor(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_release_minor arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_release_minor arduino module\n");
     mutex_lock(&arduino_minors_lock);
     idr_remove(&arduino_minors, arduino->minor);
     mutex_unlock(&arduino_minors_lock);
@@ -90,7 +90,7 @@ static void arduino_release_minor(struct arduino *arduino) {
 
 static int arduino_ctrl_msg(struct arduino *arduino, int request, int value,
                         void *buf, int len) {
-    //printk(KERN_INFO "Arduano Driver: arduino_ctrl_msg arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_ctrl_msg arduino module\n");
     int retval;
 
     retval = usb_autopm_get_interface(arduino->control);
@@ -111,7 +111,7 @@ static int arduino_ctrl_msg(struct arduino *arduino, int request, int value,
  * the cdc arduino descriptor tells whether they do...
  */
 static inline int arduino_set_control(struct arduino *arduino, int control) {
-    //printk(KERN_INFO "Arduano Driver: arduino_set_control arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_set_control arduino module\n");
 
     if (arduino->quirks & QUIRK_CONTROL_LINE_STATE)
         return -EOPNOTSUPP;
@@ -126,7 +126,7 @@ static inline int arduino_set_control(struct arduino *arduino, int control) {
     arduino_ctrl_msg(arduino, USB_CDC_REQ_SEND_BREAK, ms, NULL, 0)
 
 static void arduino_kill_urbs(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_kill_urbs arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_kill_urbs arduino module\n");
     int i;
 
     usb_kill_urb(arduino->ctrlurb);
@@ -142,7 +142,7 @@ static void arduino_kill_urbs(struct arduino *arduino) {
  */
 
 static int arduino_wb_alloc(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_wb_alloc arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_wb_alloc arduino module\n");
     int i, wbn;
     struct arduino_wb *wb;
 
@@ -161,7 +161,7 @@ static int arduino_wb_alloc(struct arduino *arduino) {
 }
 
 static int arduino_wb_is_avail(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_wb_is_avail arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_wb_is_avail arduino module\n");
 
     int i, n;
     unsigned long flags;
@@ -178,7 +178,7 @@ static int arduino_wb_is_avail(struct arduino *arduino) {
  * Finish write. Caller must hold arduino->write_lock
  */
 static void arduino_write_done(struct arduino *arduino, struct arduino_wb *wb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_write_done arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_write_done arduino module\n");
     wb->use = 0;
     arduino->transmitting--;
     usb_autopm_put_interface_async(arduino->control);
@@ -191,7 +191,7 @@ static void arduino_write_done(struct arduino *arduino, struct arduino_wb *wb) {
  */
 
 static int arduino_start_wb(struct arduino *arduino, struct arduino_wb *wb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_start_wb arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_start_wb arduino module\n");
     int rc;
 
     arduino->transmitting++;
@@ -212,7 +212,7 @@ static int arduino_start_wb(struct arduino *arduino, struct arduino_wb *wb) {
  * attributes exported through sysfs
  */
 static ssize_t show_caps(struct device *dev, struct device_attribute *attr, char *buf) {
-    //printk(KERN_INFO "Arduano Driver: show_caps arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: show_caps arduino module\n");
     struct usb_interface *intf = to_usb_interface(dev);
     struct arduino *arduino = usb_get_intfdata(intf);
 
@@ -221,7 +221,7 @@ static ssize_t show_caps(struct device *dev, struct device_attribute *attr, char
 static DEVICE_ATTR(bmCapabilities, S_IRUGO, show_caps, NULL);
 
 static void arduino_process_notification(struct arduino *arduino, unsigned char *buf) {
-    //printk(KERN_INFO "Arduano Driver: arduino_process_notification arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_process_notification arduino module\n");
     int newctrl;
     int difference;
     struct usb_cdc_notification *dr = (struct usb_cdc_notification *)buf;
@@ -275,7 +275,7 @@ static void arduino_process_notification(struct arduino *arduino, unsigned char 
 
 /* control interface reports status changes with "interrupt" transfers */
 static void arduino_ctrl_irq(struct urb *urb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_ctrl_irq arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_ctrl_irq arduino module\n");
     struct arduino *arduino = urb->context;
     struct usb_cdc_notification *dr = urb->transfer_buffer;
     unsigned int current_size = urb->actual_length;
@@ -347,7 +347,7 @@ exit:
 }
 
 static int arduino_submit_read_urb(struct arduino *arduino, int index, gfp_t mem_flags) {
-    //printk(KERN_INFO "Arduano Driver: arduino_submit_read_urb arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_submit_read_urb arduino module\n");
     int res;
 
     if (!test_and_clear_bit(index, &arduino->read_urbs_free))
@@ -363,7 +363,7 @@ static int arduino_submit_read_urb(struct arduino *arduino, int index, gfp_t mem
 }
 
 static int arduino_submit_read_urbs(struct arduino *arduino, gfp_t mem_flags) {
-    //printk(KERN_INFO "Arduano Driver: arduino_submit_read_urbs arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_submit_read_urbs arduino module\n");
     int res;
     int i;
 
@@ -377,7 +377,7 @@ static int arduino_submit_read_urbs(struct arduino *arduino, gfp_t mem_flags) {
 }
 
 static void arduino_process_read_urb(struct arduino *arduino, struct urb *urb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_process_read_urb arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_process_read_urb arduino module\n");
     if (!urb->actual_length)
         return;
 
@@ -387,7 +387,7 @@ static void arduino_process_read_urb(struct arduino *arduino, struct urb *urb) {
 }
 
 static void arduino_read_bulk_callback(struct urb *urb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_read_bulk_callback arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_read_bulk_callback arduino module\n");
     struct arduino_rb *rb = urb->context;
     struct arduino *arduino = rb->instance;
     unsigned long flags;
@@ -435,7 +435,7 @@ static void arduino_read_bulk_callback(struct urb *urb) {
 
 /* data interface wrote those outgoing bytes */
 static void arduino_write_bulk(struct urb *urb) {
-    //printk(KERN_INFO "Arduano Driver: arduino_write_bulk arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_write_bulk arduino module\n");
     struct arduino_wb *wb = urb->context;
     struct arduino *arduino = wb->instance;
     unsigned long flags;
@@ -449,7 +449,7 @@ static void arduino_write_bulk(struct urb *urb) {
 }
 
 static void arduino_softint(struct work_struct *work) {
-    //printk(KERN_INFO "Arduano Driver: arduino_softint arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_softint arduino module\n");
     int i;
     struct arduino *arduino = container_of(work, struct arduino, work);
 
@@ -475,7 +475,7 @@ static void arduino_softint(struct work_struct *work) {
  */
 
 static int arduino_tty_install(struct tty_driver *driver, struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_install arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_install arduino module\n");
     struct arduino *arduino;
     int retval;
 
@@ -497,7 +497,7 @@ error_init_termios:
 }
 
 static int arduino_tty_open(struct tty_struct *tty, struct file *filp) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_open arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_open arduino module\n");
 
     struct arduino *arduino = tty->driver_data;
 
@@ -505,7 +505,7 @@ static int arduino_tty_open(struct tty_struct *tty, struct file *filp) {
 }
 
 static void arduino_port_dtr_rts(struct tty_port *port, int raise) {
-    //printk(KERN_INFO "Arduano Driver: arduino_port_dtr_rts arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_port_dtr_rts arduino module\n");
     struct arduino *arduino = container_of(port, struct arduino, port);
     int val;
     int res;
@@ -522,7 +522,7 @@ static void arduino_port_dtr_rts(struct tty_port *port, int raise) {
 }
 
 static int arduino_port_activate(struct tty_port *port, struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_port_activate arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_port_activate arduino module\n");
     struct arduino *arduino = container_of(port, struct arduino, port);
     int retval = -ENODEV;
     int i;
@@ -582,7 +582,7 @@ disconnected:
 }
 
 static void arduino_port_destruct(struct tty_port *port) {
-    //printk(KERN_INFO "Arduano Driver: arduino_port_destruct arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_port_destruct arduino module\n");
     struct arduino *arduino = container_of(port, struct arduino, port);
 
     arduino_release_minor(arduino);
@@ -591,7 +591,7 @@ static void arduino_port_destruct(struct tty_port *port) {
 }
 
 static void arduino_port_shutdown(struct tty_port *port) {
-    //printk(KERN_INFO "Arduano Driver: arduino_port_shutdown arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_port_shutdown arduino module\n");
     struct arduino *arduino = container_of(port, struct arduino, port);
     struct urb *urb;
     struct arduino_wb *wb;
@@ -620,14 +620,14 @@ static void arduino_port_shutdown(struct tty_port *port) {
 }
 
 static void arduino_tty_cleanup(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_cleanup arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_cleanup arduino module\n");
     struct arduino *arduino = tty->driver_data;
 
     tty_port_put(&arduino->port);
 }
 
 static void arduino_tty_close(struct tty_struct *tty, struct file *filp) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_close arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_close arduino module\n");
     struct arduino *arduino = tty->driver_data;
 
     tty_port_close(&arduino->port, tty, filp);
@@ -635,7 +635,7 @@ static void arduino_tty_close(struct tty_struct *tty, struct file *filp) {
 
 static int arduino_tty_write(struct tty_struct *tty,
                          const unsigned char *buf, int count) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_write arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_write arduino module\n");
     struct arduino *arduino = tty->driver_data;
     int stat;
     unsigned long flags;
@@ -696,7 +696,7 @@ static int arduino_tty_write(struct tty_struct *tty,
 }
 
 static void arduino_tty_flush_chars(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_flush_chars arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_flush_chars arduino module\n");
     struct arduino *arduino = tty->driver_data;
     struct arduino_wb *cur = arduino->putbuffer;
     int err;
@@ -724,7 +724,7 @@ out:
 }
 
 static int arduino_tty_put_char(struct tty_struct *tty, unsigned char ch) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_put_char arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_put_char arduino module\n");
     struct arduino *arduino = tty->driver_data;
     struct arduino_wb *cur;
     int wbn;
@@ -754,7 +754,7 @@ overflow:
 }
 
 static int arduino_tty_write_room(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_write_room arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_write_room arduino module\n");
     struct arduino *arduino = tty->driver_data;
     /*
      * Do not let the line discipline to know that we have a reserve,
@@ -764,7 +764,7 @@ static int arduino_tty_write_room(struct tty_struct *tty) {
 }
 
 static int arduino_tty_chars_in_buffer(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_chars_in_buffer arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_chars_in_buffer arduino module\n");
     struct arduino *arduino = tty->driver_data;
     /*
      * if the device was unplugged then any remaining characters fell out
@@ -779,7 +779,7 @@ static int arduino_tty_chars_in_buffer(struct tty_struct *tty) {
 }
 
 static int arduino_tty_tiocmget(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_tiocmget arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_tiocmget arduino module\n");
     struct arduino *arduino = tty->driver_data;
 
     return (arduino->ctrlout & ARDUINO_CTRL_DTR ? TIOCM_DTR : 0) |
@@ -792,7 +792,7 @@ static int arduino_tty_tiocmget(struct tty_struct *tty) {
 
 static int arduino_tty_tiocmset(struct tty_struct *tty,
                             unsigned int set, unsigned int clear) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_tiocmset arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_tiocmset arduino module\n");
     struct arduino *arduino = tty->driver_data;
     unsigned int newctrl;
 
@@ -810,7 +810,7 @@ static int arduino_tty_tiocmset(struct tty_struct *tty,
 }
 
 static int get_serial_info(struct arduino *arduino, struct serial_struct __user *info) {
-    //printk(KERN_INFO "Arduano Driver: get_serial_info arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: get_serial_info arduino module\n");
     struct serial_struct tmp;
 
     memset(&tmp, 0, sizeof(tmp));
@@ -829,7 +829,7 @@ static int get_serial_info(struct arduino *arduino, struct serial_struct __user 
 
 static int set_serial_info(struct arduino *arduino,
                            struct serial_struct __user *newinfo) {
-    //printk(KERN_INFO "Arduano Driver: set_serial_info arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: set_serial_info arduino module\n");
     struct serial_struct new_serial;
     unsigned int closing_wait, close_delay;
     int retval = 0;
@@ -859,7 +859,7 @@ static int set_serial_info(struct arduino *arduino,
 }
 
 static int wait_serial_change(struct arduino *arduino, unsigned long arg) {
-    //printk(KERN_INFO "Arduano Driver: wait_serial_change arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: wait_serial_change arduino module\n");
     int rv = 0;
     DECLARE_WAITQUEUE(wait, current);
     struct async_icount old, new;
@@ -903,7 +903,7 @@ static int wait_serial_change(struct arduino *arduino, unsigned long arg) {
 
 static int arduino_tty_ioctl(struct tty_struct *tty,
                          unsigned int cmd, unsigned long arg) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_ioctl arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_ioctl arduino module\n");
     struct arduino *arduino = tty->driver_data;
     int rv = -ENOIOCTLCMD;
 
@@ -930,7 +930,7 @@ static int arduino_tty_ioctl(struct tty_struct *tty,
 
 static void arduino_tty_set_termios(struct tty_struct *tty,
                                 struct ktermios *termios_old) {
-    //printk(KERN_INFO "Arduano Driver: arduino_tty_set_termios arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_tty_set_termios arduino module\n");
     struct arduino *arduino = tty->driver_data;
     struct ktermios *termios = &tty->termios;
     struct usb_cdc_line_coding newline;
@@ -988,7 +988,7 @@ static const struct tty_port_operations arduino_port_ops = {
 
 /* Little helpers: write/read buffers free */
 static void arduino_write_buffers_free(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_write_buffers_free arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_write_buffers_free arduino module\n");
     int i;
     struct arduino_wb *wb;
 
@@ -997,7 +997,7 @@ static void arduino_write_buffers_free(struct arduino *arduino) {
 }
 
 static void arduino_read_buffers_free(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_read_buffers_free arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_read_buffers_free arduino module\n");
     int i;
 
     for (i = 0; i < arduino->rx_buflimit; i++)
@@ -1007,7 +1007,7 @@ static void arduino_read_buffers_free(struct arduino *arduino) {
 
 /* Little helper: write buffers allocate */
 static int arduino_write_buffers_alloc(struct arduino *arduino) {
-    //printk(KERN_INFO "Arduano Driver: arduino_write_buffers_alloc arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_write_buffers_alloc arduino module\n");
     int i;
     struct arduino_wb *wb;
 
@@ -1029,7 +1029,7 @@ static int arduino_write_buffers_alloc(struct arduino *arduino) {
 
 static int arduino_probe(struct usb_interface *intf,
                      const struct usb_device_id *id) {
-    //printk(KERN_INFO "Arduano Driver: arduino_probe arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_probe arduino module\n");
     struct usb_cdc_union_desc *union_header = NULL;
     struct usb_cdc_call_mgmt_descriptor *cmgmd = NULL;
     unsigned char *buffer = intf->altsetting->extra;
@@ -1099,7 +1099,7 @@ static int arduino_probe(struct usb_interface *intf,
     if (!usb_endpoint_dir_in(epread)) { /* workaround for switched endpoints */
         swap(epread, epwrite);/* descriptors are swapped */
     }
-    printk(KERN_INFO "Arduano Driver: compressing_probe arduino module\n");
+    printk(KERN_INFO "Arduino Driver: compressing_probe arduino module\n");
     arduino = kzalloc(sizeof(struct arduino), GFP_KERNEL);
     if (arduino == NULL)
         goto alloc_fail;
@@ -1222,7 +1222,7 @@ static int arduino_probe(struct usb_interface *intf,
     arduino->nb_index = 0;
     arduino->nb_size = 0;
 
-    dev_info(&intf->dev, "arduano%d: USB Arduano device!\n", minor);
+    dev_info(&intf->dev, "arduino%d: USB Arduino device!\n", minor);
 
     arduino->line.dwDTERate = cpu_to_le32(9600);
     arduino->line.bDataBits = 8;
@@ -1269,7 +1269,7 @@ alloc_fail:
 }
 
 static void arduino_disconnect(struct usb_interface *intf) {
-    //printk(KERN_INFO "Arduano Driver: arduino_disconnect arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_disconnect arduino module\n");
     struct arduino *arduino = usb_get_intfdata(intf);
     struct tty_struct *tty;
 
@@ -1352,13 +1352,13 @@ static const struct tty_operations arduino_ops = {
  */
 
 static int __init arduino_init(void) {
-    //printk(KERN_INFO "Arduano Driver: arduino_init arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_init arduino module\n");
     int retval;
     arduino_tty_driver = alloc_tty_driver(ARDUINO_TTY_MINORS);
     if (!arduino_tty_driver)
         return -ENOMEM;
-    arduino_tty_driver->driver_name = "arduano",
-    arduino_tty_driver->name = "arduano",
+    arduino_tty_driver->driver_name = "arduino",
+    arduino_tty_driver->name = "arduino",
     arduino_tty_driver->major = ARDUINO_TTY_MAJOR,
     arduino_tty_driver->minor_start = 0,
     arduino_tty_driver->type = TTY_DRIVER_TYPE_SERIAL,
@@ -1388,7 +1388,7 @@ static int __init arduino_init(void) {
 }
 
 static void __exit arduino_exit(void) {
-    //printk(KERN_INFO "Arduano Driver: arduino_exit arduino module\n");
+    //printk(KERN_INFO "Arduino Driver: arduino_exit arduino module\n");
     usb_deregister(&arduino_driver);
     tty_unregister_driver(arduino_tty_driver);
     put_tty_driver(arduino_tty_driver);

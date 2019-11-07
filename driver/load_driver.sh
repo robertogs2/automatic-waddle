@@ -3,3 +3,4 @@ sudo rmmod arduano || :
 make local || :
 sudo insmod arduano.ko || :
 sudo chmod 666 /dev/arduano* || :
+sudo make clean

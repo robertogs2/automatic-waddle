@@ -1,1 +1,0 @@
-cmd_/home/roberto/Documents/github/automatic-waddle/driver4/arduano.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/roberto/Documents/github/automatic-waddle/driver4/arduano.ko /home/roberto/Documents/github/automatic-waddle/driver4/arduano.o /home/roberto/Documents/github/automatic-waddle/driver4/arduano.mod.o ;  true
