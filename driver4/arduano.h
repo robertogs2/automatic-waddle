@@ -89,9 +89,6 @@ struct acm {
 	struct urb *ctrlurb;				/* urbs */
 	u8 *ctrl_buffer;				/* buffers of urbs */
 	dma_addr_t ctrl_dma;				/* dma handles of buffers */
-	//u8 *country_codes;				/* country codes from device */
-	//unsigned int country_code_size;			/* size of this buffer */
-	//unsigned int country_rel_date;			/* release date of version */
 	struct acm_wb wb[ACM_NW];
 	unsigned long read_urbs_free;
 	struct urb *read_urbs[ACM_NR];
@@ -123,7 +120,7 @@ struct acm {
 	unsigned int ctrl_caps;				/* control capabilities from the class specific header */
 	unsigned int susp_count;			/* number of suspended interfaces */
 	unsigned int combined_interfaces:1;		/* control and data collapsed */
-	unsigned int throttled:1;			/* actually throttled */
+	unsigned int throttled:1;			/* actually throttled TODO*/
 	unsigned int throttle_req:1;			/* throttle requested */
 	u8 bInterval;
 	struct usb_anchor delayed;			/* writes queued for a device about to be woken */

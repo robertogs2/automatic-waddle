@@ -111,7 +111,7 @@ static int acm_ctrl_msg(struct acm *acm, int request, int value,
  * the cdc acm descriptor tells whether they do...
  */
 static inline int acm_set_control(struct acm *acm, int control) {
-    //printk(KERN_INFO "Arduano Driver: acm_ctrl_msg arduino module\n");
+    //printk(KERN_INFO "Arduano Driver: acm_set_control arduino module\n");
 
     if (acm->quirks & QUIRK_CONTROL_LINE_STATE)
         return -EOPNOTSUPP;
@@ -416,7 +416,7 @@ static void acm_read_bulk_callback(struct urb *urb) {
         break;
     }
 
-    /*
+    /* 
      * Unthrottle may run on another CPU which needs to see events
      * in the same order. Submission has an implict barrier
      */
@@ -778,15 +778,6 @@ static int acm_tty_chars_in_buffer(struct tty_struct *tty) {
     return (ACM_NW - acm_wb_is_avail(acm)) * acm->writesize;
 }
 
-static int acm_tty_break_ctl(struct tty_struct *tty, int state) {
-    //printk(KERN_INFO "Arduano Driver: acm_tty_break_ctl arduino module\n");
-    struct acm *acm = tty->driver_data;
-    int retval;
-
-    retval = acm_send_break(acm, state ? 0xffff : 0);
-    return retval;
-}
-
 static int acm_tty_tiocmget(struct tty_struct *tty) {
     //printk(KERN_INFO "Arduano Driver: acm_tty_tiocmget arduino module\n");
     struct acm *acm = tty->driver_data;
@@ -908,22 +899,6 @@ static int wait_serial_change(struct acm *acm, unsigned long arg) {
 
 
     return rv;
-}
-
-static int acm_tty_get_icount(struct tty_struct *tty,
-                              struct serial_icounter_struct *icount) {
-    //printk(KERN_INFO "Arduano Driver: acm_tty_get_icount arduino module\n");
-    struct acm *acm = tty->driver_data;
-
-    icount->dsr = acm->iocount.dsr;
-    icount->rng = acm->iocount.rng;
-    icount->dcd = acm->iocount.dcd;
-    icount->frame = acm->iocount.frame;
-    icount->overrun = acm->iocount.overrun;
-    icount->parity = acm->iocount.parity;
-    icount->brk = acm->iocount.brk;
-
-    return 0;
 }
 
 static int acm_tty_ioctl(struct tty_struct *tty,
@@ -1125,66 +1100,68 @@ static int acm_probe(struct usb_interface *intf,
     if (cmgmd)
         call_intf_num = cmgmd->bDataInterface;
 
-    if (!union_header) {
-        if (call_intf_num > 0) {
-            /* quirks for Droids MuIn LCD TODO*/ 
-            if (quirks & NO_DATA_INTERFACE) {
-                data_interface = usb_ifnum_to_if(usb_dev, 0);
-            } else {
-                data_intf_num = call_intf_num;
-                data_interface = usb_ifnum_to_if(usb_dev, data_intf_num);
-            }
-            control_interface = intf;
-        } else {
-            if (intf->cur_altsetting->desc.bNumEndpoints != 3) {
-                return -ENODEV;
-            } else {
-                combined_interfaces = 1;
-                control_interface = data_interface = intf;
-                goto look_for_collapsed_interface;
-            }
-        }
-    } else {
+    // if (!union_header) { //TODO!
+    //     if (call_intf_num > 0) {
+    //         /* quirks for Droids MuIn LCD TODO*/ 
+    //         if (quirks & NO_DATA_INTERFACE) {
+    //             data_interface = usb_ifnum_to_if(usb_dev, 0);
+    //         } else {
+    //             data_intf_num = call_intf_num;
+    //             data_interface = usb_ifnum_to_if(usb_dev, data_intf_num);
+    //         }
+    //         control_interface = intf;
+    //     } else {
+    //         if (intf->cur_altsetting->desc.bNumEndpoints != 3) {
+    //             return -ENODEV;
+    //         } else {
+    //             combined_interfaces = 1;
+    //             control_interface = data_interface = intf;
+    //             goto look_for_collapsed_interface;
+    //         }
+    //     }
+    // } else {
         data_intf_num = union_header->bSlaveInterface0;
         control_interface = usb_ifnum_to_if(usb_dev, union_header->bMasterInterface0);
         data_interface = usb_ifnum_to_if(usb_dev, data_intf_num);
-    }
+    //}
 
     if (!control_interface || !data_interface) {
         return -ENODEV;
     }
     if (!data_interface->cur_altsetting || !control_interface->cur_altsetting)
         return -ENODEV;
+    printk(KERN_INFO "Arduano Driver: Checking for combined interfaces\n");
+//     if (control_interface == data_interface) { //TODO
+//         printk(KERN_INFO "Arduano Driver: Combined interfaces!\n");
+//         /* some broken devices designed for windows work this way */
+//         combined_interfaces = 1;
+//         /* a popular other OS doesn't use it */
+//         quirks |= NO_CAP_LINE; // TODO
+//         if (data_interface->cur_altsetting->desc.bNumEndpoints != 3) {
+//             return -EINVAL;
+//         }
+// look_for_collapsed_interface:
+//         printk(KERN_INFO "Arduano Driver: Looking for collapsed interfaces\n");
+//         res = usb_find_common_endpoints(data_interface->cur_altsetting,
+//                                         &epread, &epwrite, &epctrl, NULL);
+//         if (res)
+//             return res;
 
-    if (control_interface == data_interface) {
-        /* some broken devices designed for windows work this way */
-        combined_interfaces = 1;
-        /* a popular other OS doesn't use it */
-        quirks |= NO_CAP_LINE; // TODO
-        if (data_interface->cur_altsetting->desc.bNumEndpoints != 3) {
-            return -EINVAL;
-        }
-look_for_collapsed_interface:
-        res = usb_find_common_endpoints(data_interface->cur_altsetting,
-                                        &epread, &epwrite, &epctrl, NULL);
-        if (res)
-            return res;
-
-        goto made_compressed_probe;
-    }
+//         goto made_compressed_probe;
+//     }
 
 skip_normal_probe:
 
-    /*workaround for switched interfaces */
-    if (data_interface->cur_altsetting->desc.bInterfaceClass
-            != CDC_DATA_INTERFACE_TYPE) {
-        if (control_interface->cur_altsetting->desc.bInterfaceClass
-                == CDC_DATA_INTERFACE_TYPE) {
-            swap(control_interface, data_interface);
-        } else {
-            return -EINVAL;
-        }
-    }
+    // /*workaround for switched interfaces */ //TODO
+    // if (data_interface->cur_altsetting->desc.bInterfaceClass
+    //         != CDC_DATA_INTERFACE_TYPE) {
+    //     if (control_interface->cur_altsetting->desc.bInterfaceClass
+    //             == CDC_DATA_INTERFACE_TYPE) {
+    //         swap(control_interface, data_interface);
+    //     } else {
+    //         return -EINVAL;
+    //     }
+    // }
 
     /* Accept probe requests only for the control interface */
     if (!combined_interfaces && intf != control_interface)
@@ -1453,11 +1430,9 @@ static const struct tty_operations acm_ops = {
     .write_room =       acm_tty_write_room,
     .ioctl =        acm_tty_ioctl,
     .chars_in_buffer =  acm_tty_chars_in_buffer,
-    //.break_ctl =        acm_tty_break_ctl,
     .set_termios =      acm_tty_set_termios,
     .tiocmget =     acm_tty_tiocmget,
     .tiocmset =     acm_tty_tiocmset,
-    //.get_icount =       acm_tty_get_icount,
 };
 
 /*
