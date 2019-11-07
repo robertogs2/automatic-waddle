@@ -627,7 +627,7 @@ static void acm_tty_cleanup(struct tty_struct *tty) {
 }
 
 static void acm_tty_hangup(struct tty_struct *tty) {
-    //printk(KERN_INFO "Arduano Driver: acm_tty_hangup arduino module\n");
+    printk(KERN_INFO "Arduano Driver: acm_tty_hangup arduino module\n");
     struct acm *acm = tty->driver_data;
 
     tty_port_hangup(&acm->port);
@@ -1451,89 +1451,6 @@ static void acm_disconnect(struct usb_interface *intf) {
     tty_port_put(&acm->port);
 }
 
-// #ifdef CONFIG_PM
-// static int acm_suspend(struct usb_interface *intf, pm_message_t message) {
-//     //printk(KERN_INFO "Arduano Driver: acm_suspend arduino module\n");
-//     struct acm *acm = usb_get_intfdata(intf);
-//     int cnt;
-
-//     spin_lock_irq(&acm->write_lock);
-//     if (PMSG_IS_AUTO(message)) {
-//         if (acm->transmitting) {
-//             spin_unlock_irq(&acm->write_lock);
-//             return -EBUSY;
-//         }
-//     }
-//     cnt = acm->susp_count++;
-//     spin_unlock_irq(&acm->write_lock);
-
-//     if (cnt)
-//         return 0;
-
-//     acm_kill_urbs(acm);
-//     cancel_work_sync(&acm->work);
-
-//     return 0;
-// }
-
-// static int acm_resume(struct usb_interface *intf) {
-//     //printk(KERN_INFO "Arduano Driver: acm_resume arduino module\n");
-//     struct acm *acm = usb_get_intfdata(intf);
-//     struct urb *urb;
-//     int rv = 0;
-
-//     spin_lock_irq(&acm->write_lock);
-
-//     if (--acm->susp_count)
-//         goto out;
-
-//     if (tty_port_initialized(&acm->port)) {
-//         rv = usb_submit_urb(acm->ctrlurb, GFP_ATOMIC);
-
-//         for (;;) {
-//             urb = usb_get_from_anchor(&acm->delayed);
-//             if (!urb)
-//                 break;
-
-//             acm_start_wb(acm, urb->context);
-//         }
-
-//         /*
-//          * delayed error checking because we must
-//          * do the write path at all cost
-//          */
-//         if (rv < 0)
-//             goto out;
-
-//         rv = acm_submit_read_urbs(acm, GFP_ATOMIC);
-//     }
-// out:
-//     spin_unlock_irq(&acm->write_lock);
-
-//     return rv;
-// }
-
-// static int acm_reset_resume(struct usb_interface *intf) {
-//     //printk(KERN_INFO "Arduano Driver: acm_reset_resume arduino module\n");
-//     struct acm *acm = usb_get_intfdata(intf);
-
-//     if (tty_port_initialized(&acm->port))
-//         tty_port_tty_hangup(&acm->port, false);
-
-//     return acm_resume(intf);
-// }
-
-// #endif /* CONFIG_PM */
-
-static int acm_pre_reset(struct usb_interface *intf) {
-    //printk(KERN_INFO "Arduano Driver: acm_pre_reset arduino module\n");
-    struct acm *acm = usb_get_intfdata(intf);
-
-    clear_bit(EVENT_RX_STALL, &acm->flags);
-
-    return 0;
-}
-
 /*
  * USB driver structure.
  */
@@ -1545,12 +1462,6 @@ static struct usb_driver acm_driver = {
     .name =     "Arduino USB driver",
     .probe =    acm_probe,
     .disconnect =   acm_disconnect,
-// #ifdef CONFIG_PM
-//     .suspend =  acm_suspend,
-//     .resume =   acm_resume,
-//     .reset_resume = acm_reset_resume,
-// #endif
-    .pre_reset =    acm_pre_reset,
     .id_table = acm_ids,
 #ifdef CONFIG_PM
     .supports_autosuspend = 1,
@@ -1567,14 +1478,14 @@ static const struct tty_operations acm_ops = {
     .open =         acm_tty_open,
     .close =        acm_tty_close,
     .cleanup =      acm_tty_cleanup,
-    .hangup =       acm_tty_hangup,
+    //.hangup =       acm_tty_hangup,
     .write =        acm_tty_write,
     .put_char =     acm_tty_put_char,
     .flush_chars =      acm_tty_flush_chars,
     .write_room =       acm_tty_write_room,
     .ioctl =        acm_tty_ioctl,
-    .throttle =     acm_tty_throttle,
-    .unthrottle =       acm_tty_unthrottle,
+    //.throttle =     acm_tty_throttle,
+    //.unthrottle =       acm_tty_unthrottle,
     .chars_in_buffer =  acm_tty_chars_in_buffer,
     .break_ctl =        acm_tty_break_ctl,
     .set_termios =      acm_tty_set_termios,
