@@ -1,6 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  *
- * Includes for arduano.c
+ * Includes for cdc-acm.c
  *
  * Mainly take from usbnet's cdc-ether part
  *
@@ -18,9 +19,8 @@
  * Major and minor numbers.
  */
 
-#define DEVICE_NAME "arduano"
-#define ARDUANO_TTY_MAJOR       245
-#define ARDUANO_TTY_MINORS      256
+#define ACM_TTY_MAJOR		166
+#define ACM_TTY_MINORS		256
 
 /*
  * Requests.
@@ -84,26 +84,31 @@ struct acm {
 	struct usb_device *dev;				/* the corresponding usb device */
 	struct usb_interface *control;			/* control interface */
 	struct usb_interface *data;			/* data interface */
+	unsigned in, out;				/* i/o pipes */
 	struct tty_port port;			 	/* our tty port data */
 	struct urb *ctrlurb;				/* urbs */
 	u8 *ctrl_buffer;				/* buffers of urbs */
 	dma_addr_t ctrl_dma;				/* dma handles of buffers */
-	u8 *country_codes;				/* country codes from device */
-	unsigned int country_code_size;			/* size of this buffer */
-	unsigned int country_rel_date;			/* release date of version */
+	//u8 *country_codes;				/* country codes from device */
+	//unsigned int country_code_size;			/* size of this buffer */
+	//unsigned int country_rel_date;			/* release date of version */
 	struct acm_wb wb[ACM_NW];
 	unsigned long read_urbs_free;
 	struct urb *read_urbs[ACM_NR];
 	struct acm_rb read_buffers[ACM_NR];
 	struct acm_wb *putbuffer;			/* for acm_tty_put_char() */
 	int rx_buflimit;
-	int rx_endpoint;
 	spinlock_t read_lock;
-	int write_used;					/* number of non-empty write buffers */
+	u8 *notification_buffer;			/* to reassemble fragmented notifications */
+	unsigned int nb_index;
+	unsigned int nb_size;
 	int transmitting;
 	spinlock_t write_lock;
 	struct mutex mutex;
 	bool disconnected;
+	unsigned long flags;
+#		define EVENT_TTY_WAKEUP	0
+#		define EVENT_RX_STALL	1
 	struct usb_cdc_line_coding line;		/* bits, stop, parity */
 	struct work_struct work;			/* work queue entry for line discipline waking up */
 	unsigned int ctrlin;				/* input control lines (DCD, DSR, RI, break, overruns) */
@@ -118,7 +123,6 @@ struct acm {
 	unsigned int ctrl_caps;				/* control capabilities from the class specific header */
 	unsigned int susp_count;			/* number of suspended interfaces */
 	unsigned int combined_interfaces:1;		/* control and data collapsed */
-	unsigned int is_int_ep:1;			/* interrupt endpoints contrary to spec used */
 	unsigned int throttled:1;			/* actually throttled */
 	unsigned int throttle_req:1;			/* throttle requested */
 	u8 bInterval;

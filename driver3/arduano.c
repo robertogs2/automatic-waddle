@@ -36,8 +36,8 @@ static struct usb_device *arduano_device;
 static struct usb_class_driver arduano_class;
 static struct usb_device_id arduino_table[] = {{USB_DEVICE(0x2341, 0x0043)}, {}}; //2341:0043
 
-static struct usb_endpoint_descriptor *epread;
-static struct usb_endpoint_descriptor *epwrite;
+struct usb_endpoint_descriptor *epread;
+struct usb_endpoint_descriptor *epwrite;
 
 // opening and closing operations
 int arduino_open(struct inode *inode, struct file *filp);
@@ -130,17 +130,21 @@ static int arduino_probe(struct usb_interface *interface, const struct usb_devic
         struct usb_endpoint_descriptor *ep;
         ep = &data_interface->cur_altsetting->endpoint[i].desc;
 
-        	if (usb_endpoint_is_int_in(ep))
-        		epctrl = ep;
-        	else if (usb_endpoint_is_bulk_out(ep))
-        		epwrite = ep;
-        	else if (usb_endpoint_is_bulk_in(ep))
+        	// if (usb_endpoint_is_int_in(ep))
+        	// 	epctrl = ep;
+        	if (usb_endpoint_is_bulk_out(ep)){
+                printk(KERN_INFO "Arduano Driver: Set endpoint write to %d.", ep->bEndpointAddress);
+                epwrite = ep;
+            }
+        	else if (usb_endpoint_is_bulk_in(ep)){
+                printk(KERN_INFO "Arduano Driver: Set endpoint read to %d.", ep->bEndpointAddress);
         		epread = ep;
-        	else
-        		return -EINVAL;
+            }
+        	// else
+        	// 	return -EINVAL;
        
     }
-    // if (!epctrl || !epread || !epwrite)
+    // if (!epread || !epwrite)
     //     return -ENODEV;
     //******************************************
     //******************************************
@@ -190,6 +194,7 @@ ssize_t arduino_read(struct file *filp, char *buffer, size_t count, loff_t *offs
     int read_count;
 
     /* Read the data from the bulk endpoint */
+    printk(KERN_INFO "Arduano Driver: Reading bulk from endpoint: %d\n", epread->bEndpointAddress);
     retval = usb_bulk_msg(arduano_device, usb_rcvbulkpipe(arduano_device, epread->bEndpointAddress),//BULK_EP_IN),
                           read_buffer, BUFFER_SIZE, &read_count, TIMEOUT);
     if (retval) {
@@ -212,6 +217,7 @@ ssize_t arduino_write(struct file *filp, const char *buffer, size_t count, loff_
     }
 
     /* Write the data into the bulk endpoint */
+    printk(KERN_INFO "Arduano Driver: Writing bulk to endpoint: %d\n", epwrite->bEndpointAddress);
     retval = usb_bulk_msg(arduano_device, usb_sndbulkpipe(arduano_device, epwrite->bEndpointAddress),//BULK_EP_OUT),
                           write_buffer, MIN(count, BUFFER_SIZE), &wrote_cnt, TIMEOUT);
     if (retval) {
