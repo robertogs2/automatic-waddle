@@ -62,6 +62,8 @@ static void acm_tty_set_termios(struct tty_struct *tty,
  * its refcount and return it with its mutex held.
  */
 static struct acm *acm_get_by_minor(unsigned int minor) {
+    //printk(KERN_INFO "Arduano Driver: acm_get_by_minor arduino module\n");
+
     struct acm *acm;
 
     mutex_lock(&acm_minors_lock);
@@ -83,7 +85,9 @@ static struct acm *acm_get_by_minor(unsigned int minor) {
 /*
  * Try to find an available minor number and if found, associate it with 'acm'.
  */
-static int acm_alloc_minor(struct acm *acm) {
+static int acm_alloc_minor(struct acm *acm) {    
+    //printk(KERN_INFO "Arduano Driver: acm_alloc_minor arduino module\n");
+
     int minor;
 
     mutex_lock(&acm_minors_lock);
@@ -95,6 +99,7 @@ static int acm_alloc_minor(struct acm *acm) {
 
 /* Release the minor number associated with 'acm'.  */
 static void acm_release_minor(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_release_minor arduino module\n");
     mutex_lock(&acm_minors_lock);
     idr_remove(&acm_minors, acm->minor);
     mutex_unlock(&acm_minors_lock);
@@ -106,6 +111,7 @@ static void acm_release_minor(struct acm *acm) {
 
 static int acm_ctrl_msg(struct acm *acm, int request, int value,
                         void *buf, int len) {
+    //printk(KERN_INFO "Arduano Driver: acm_ctrl_msg arduino module\n");
     int retval;
 
     retval = usb_autopm_get_interface(acm->control);
@@ -130,6 +136,8 @@ static int acm_ctrl_msg(struct acm *acm, int request, int value,
  * the cdc acm descriptor tells whether they do...
  */
 static inline int acm_set_control(struct acm *acm, int control) {
+    //printk(KERN_INFO "Arduano Driver: acm_ctrl_msg arduino module\n");
+
     if (acm->quirks & QUIRK_CONTROL_LINE_STATE)
         return -EOPNOTSUPP;
 
@@ -143,6 +151,7 @@ static inline int acm_set_control(struct acm *acm, int control) {
     acm_ctrl_msg(acm, USB_CDC_REQ_SEND_BREAK, ms, NULL, 0)
 
 static void acm_kill_urbs(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_kill_urbs arduino module\n");
     int i;
 
     usb_kill_urb(acm->ctrlurb);
@@ -158,6 +167,7 @@ static void acm_kill_urbs(struct acm *acm) {
  */
 
 static int acm_wb_alloc(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_wb_alloc arduino module\n");
     int i, wbn;
     struct acm_wb *wb;
 
@@ -176,6 +186,8 @@ static int acm_wb_alloc(struct acm *acm) {
 }
 
 static int acm_wb_is_avail(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_wb_is_avail arduino module\n");
+
     int i, n;
     unsigned long flags;
 
@@ -191,6 +203,7 @@ static int acm_wb_is_avail(struct acm *acm) {
  * Finish write. Caller must hold acm->write_lock
  */
 static void acm_write_done(struct acm *acm, struct acm_wb *wb) {
+    //printk(KERN_INFO "Arduano Driver: acm_write_done arduino module\n");
     wb->use = 0;
     acm->transmitting--;
     usb_autopm_put_interface_async(acm->control);
@@ -203,6 +216,7 @@ static void acm_write_done(struct acm *acm, struct acm_wb *wb) {
  */
 
 static int acm_start_wb(struct acm *acm, struct acm_wb *wb) {
+    //printk(KERN_INFO "Arduano Driver: acm_start_wb arduino module\n");
     int rc;
 
     acm->transmitting++;
@@ -225,8 +239,8 @@ static int acm_start_wb(struct acm *acm, struct acm_wb *wb) {
 /*
  * attributes exported through sysfs
  */
-static ssize_t show_caps
-(struct device *dev, struct device_attribute *attr, char *buf) {
+static ssize_t show_caps(struct device *dev, struct device_attribute *attr, char *buf) {
+    //printk(KERN_INFO "Arduano Driver: show_caps arduino module\n");
     struct usb_interface *intf = to_usb_interface(dev);
     struct acm *acm = usb_get_intfdata(intf);
 
@@ -235,6 +249,7 @@ static ssize_t show_caps
 static DEVICE_ATTR(bmCapabilities, S_IRUGO, show_caps, NULL);
 
 static void acm_process_notification(struct acm *acm, unsigned char *buf) {
+    //printk(KERN_INFO "Arduano Driver: acm_process_notification arduino module\n");
     int newctrl;
     int difference;
     struct usb_cdc_notification *dr = (struct usb_cdc_notification *)buf;
@@ -299,6 +314,7 @@ static void acm_process_notification(struct acm *acm, unsigned char *buf) {
 
 /* control interface reports status changes with "interrupt" transfers */
 static void acm_ctrl_irq(struct urb *urb) {
+    //printk(KERN_INFO "Arduano Driver: acm_ctrl_irq arduino module\n");
     struct acm *acm = urb->context;
     struct usb_cdc_notification *dr = urb->transfer_buffer;
     unsigned int current_size = urb->actual_length;
@@ -308,6 +324,7 @@ static void acm_ctrl_irq(struct urb *urb) {
 
     switch (status) {
     case 0:
+
         /* success */
         break;
     case -ECONNRESET:
@@ -378,6 +395,7 @@ exit:
 }
 
 static int acm_submit_read_urb(struct acm *acm, int index, gfp_t mem_flags) {
+    //printk(KERN_INFO "Arduano Driver: acm_submit_read_urb arduino module\n");
     int res;
 
     if (!test_and_clear_bit(index, &acm->read_urbs_free))
@@ -392,14 +410,16 @@ static int acm_submit_read_urb(struct acm *acm, int index, gfp_t mem_flags) {
         }
         set_bit(index, &acm->read_urbs_free);
         return res;
-    } else {
-        dev_vdbg(&acm->data->dev, "submitted urb %d\n", index);
-    }
+    } 
+    // else {
+    //     dev_vdbg(&acm->data->dev, "submitted urb %d\n", index);
+    // }
 
     return 0;
 }
 
 static int acm_submit_read_urbs(struct acm *acm, gfp_t mem_flags) {
+    //printk(KERN_INFO "Arduano Driver: acm_submit_read_urbs arduino module\n");
     int res;
     int i;
 
@@ -413,6 +433,7 @@ static int acm_submit_read_urbs(struct acm *acm, gfp_t mem_flags) {
 }
 
 static void acm_process_read_urb(struct acm *acm, struct urb *urb) {
+    //printk(KERN_INFO "Arduano Driver: acm_process_read_urb arduino module\n");
     if (!urb->actual_length)
         return;
 
@@ -422,13 +443,14 @@ static void acm_process_read_urb(struct acm *acm, struct urb *urb) {
 }
 
 static void acm_read_bulk_callback(struct urb *urb) {
+    //printk(KERN_INFO "Arduano Driver: acm_read_bulk_callback arduino module\n");
     struct acm_rb *rb = urb->context;
     struct acm *acm = rb->instance;
     unsigned long flags;
     int status = urb->status;
 
-    dev_vdbg(&acm->data->dev, "got urb %d, len %d, status %d\n",
-             rb->index, urb->actual_length, status);
+    // dev_vdbg(&acm->data->dev, "got urb %d, len %d, status %d\n",
+    //          rb->index, urb->actual_length, status);
 
     set_bit(rb->index, &acm->read_urbs_free);
 
@@ -479,16 +501,17 @@ static void acm_read_bulk_callback(struct urb *urb) {
 
 /* data interface wrote those outgoing bytes */
 static void acm_write_bulk(struct urb *urb) {
+    //printk(KERN_INFO "Arduano Driver: acm_write_bulk arduino module\n");
     struct acm_wb *wb = urb->context;
     struct acm *acm = wb->instance;
     unsigned long flags;
     int status = urb->status;
 
-    if (status || (urb->actual_length != urb->transfer_buffer_length))
-        dev_vdbg(&acm->data->dev, "wrote len %d/%d, status %d\n",
-                 urb->actual_length,
-                 urb->transfer_buffer_length,
-                 status);
+    // if (status || (urb->actual_length != urb->transfer_buffer_length))
+    //     dev_vdbg(&acm->data->dev, "wrote len %d/%d, status %d\n",
+    //              urb->actual_length,
+    //              urb->transfer_buffer_length,
+    //              status);
 
     spin_lock_irqsave(&acm->write_lock, flags);
     acm_write_done(acm, wb);
@@ -498,6 +521,7 @@ static void acm_write_bulk(struct urb *urb) {
 }
 
 static void acm_softint(struct work_struct *work) {
+    //printk(KERN_INFO "Arduano Driver: acm_softint arduino module\n");
     int i;
     struct acm *acm = container_of(work, struct acm, work);
 
@@ -523,6 +547,7 @@ static void acm_softint(struct work_struct *work) {
  */
 
 static int acm_tty_install(struct tty_driver *driver, struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_install arduino module\n");
     struct acm *acm;
     int retval;
 
@@ -544,12 +569,15 @@ error_init_termios:
 }
 
 static int acm_tty_open(struct tty_struct *tty, struct file *filp) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_open arduino module\n");
+
     struct acm *acm = tty->driver_data;
 
     return tty_port_open(&acm->port, tty, filp);
 }
 
 static void acm_port_dtr_rts(struct tty_port *port, int raise) {
+    //printk(KERN_INFO "Arduano Driver: acm_port_dtr_rts arduino module\n");
     struct acm *acm = container_of(port, struct acm, port);
     int val;
     int res;
@@ -568,6 +596,7 @@ static void acm_port_dtr_rts(struct tty_port *port, int raise) {
 }
 
 static int acm_port_activate(struct tty_port *port, struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_port_activate arduino module\n");
     struct acm *acm = container_of(port, struct acm, port);
     int retval = -ENODEV;
     int i;
@@ -629,6 +658,7 @@ disconnected:
 }
 
 static void acm_port_destruct(struct tty_port *port) {
+    //printk(KERN_INFO "Arduano Driver: acm_port_destruct arduino module\n");
     struct acm *acm = container_of(port, struct acm, port);
 
     acm_release_minor(acm);
@@ -638,6 +668,7 @@ static void acm_port_destruct(struct tty_port *port) {
 }
 
 static void acm_port_shutdown(struct tty_port *port) {
+    //printk(KERN_INFO "Arduano Driver: acm_port_shutdown arduino module\n");
     struct acm *acm = container_of(port, struct acm, port);
     struct urb *urb;
     struct acm_wb *wb;
@@ -666,18 +697,21 @@ static void acm_port_shutdown(struct tty_port *port) {
 }
 
 static void acm_tty_cleanup(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_cleanup arduino module\n");
     struct acm *acm = tty->driver_data;
 
     tty_port_put(&acm->port);
 }
 
 static void acm_tty_hangup(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_hangup arduino module\n");
     struct acm *acm = tty->driver_data;
 
     tty_port_hangup(&acm->port);
 }
 
 static void acm_tty_close(struct tty_struct *tty, struct file *filp) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_close arduino module\n");
     struct acm *acm = tty->driver_data;
 
     tty_port_close(&acm->port, tty, filp);
@@ -685,6 +719,7 @@ static void acm_tty_close(struct tty_struct *tty, struct file *filp) {
 
 static int acm_tty_write(struct tty_struct *tty,
                          const unsigned char *buf, int count) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_write arduino module\n");
     struct acm *acm = tty->driver_data;
     int stat;
     unsigned long flags;
@@ -694,7 +729,7 @@ static int acm_tty_write(struct tty_struct *tty,
     if (!count)
         return 0;
 
-    dev_vdbg(&acm->data->dev, "%d bytes from tty layer\n", count);
+    //dev_vdbg(&acm->data->dev, "%d bytes from tty layer\n", count);
 
     spin_lock_irqsave(&acm->write_lock, flags);
     wbn = acm_wb_alloc(acm);
@@ -711,7 +746,7 @@ static int acm_tty_write(struct tty_struct *tty,
     }
 
     count = (count > acm->writesize) ? acm->writesize : count;
-    dev_vdbg(&acm->data->dev, "writing %d bytes\n", count);
+    //dev_vdbg(&acm->data->dev, "writing %d bytes\n", count);
     memcpy(wb->buf, buf, count);
     wb->len = count;
 
@@ -748,6 +783,7 @@ static int acm_tty_write(struct tty_struct *tty,
 }
 
 static void acm_tty_flush_chars(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_flush_chars arduino module\n");
     struct acm *acm = tty->driver_data;
     struct acm_wb *cur = acm->putbuffer;
     int err;
@@ -775,6 +811,7 @@ out:
 }
 
 static int acm_tty_put_char(struct tty_struct *tty, unsigned char ch) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_put_char arduino module\n");
     struct acm *acm = tty->driver_data;
     struct acm_wb *cur;
     int wbn;
@@ -804,6 +841,7 @@ overflow:
 }
 
 static int acm_tty_write_room(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_write_room arduino module\n");
     struct acm *acm = tty->driver_data;
     /*
      * Do not let the line discipline to know that we have a reserve,
@@ -813,6 +851,7 @@ static int acm_tty_write_room(struct tty_struct *tty) {
 }
 
 static int acm_tty_chars_in_buffer(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_chars_in_buffer arduino module\n");
     struct acm *acm = tty->driver_data;
     /*
      * if the device was unplugged then any remaining characters fell out
@@ -827,6 +866,7 @@ static int acm_tty_chars_in_buffer(struct tty_struct *tty) {
 }
 
 static void acm_tty_throttle(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_throttle arduino module\n");
     struct acm *acm = tty->driver_data;
 
     spin_lock_irq(&acm->read_lock);
@@ -835,6 +875,7 @@ static void acm_tty_throttle(struct tty_struct *tty) {
 }
 
 static void acm_tty_unthrottle(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_unthrottle arduino module\n");
     struct acm *acm = tty->driver_data;
     unsigned int was_throttled;
 
@@ -849,6 +890,7 @@ static void acm_tty_unthrottle(struct tty_struct *tty) {
 }
 
 static int acm_tty_break_ctl(struct tty_struct *tty, int state) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_break_ctl arduino module\n");
     struct acm *acm = tty->driver_data;
     int retval;
 
@@ -860,6 +902,7 @@ static int acm_tty_break_ctl(struct tty_struct *tty, int state) {
 }
 
 static int acm_tty_tiocmget(struct tty_struct *tty) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_tiocmget arduino module\n");
     struct acm *acm = tty->driver_data;
 
     return (acm->ctrlout & ACM_CTRL_DTR ? TIOCM_DTR : 0) |
@@ -872,6 +915,7 @@ static int acm_tty_tiocmget(struct tty_struct *tty) {
 
 static int acm_tty_tiocmset(struct tty_struct *tty,
                             unsigned int set, unsigned int clear) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_tiocmset arduino module\n");
     struct acm *acm = tty->driver_data;
     unsigned int newctrl;
 
@@ -889,6 +933,7 @@ static int acm_tty_tiocmset(struct tty_struct *tty,
 }
 
 static int get_serial_info(struct acm *acm, struct serial_struct __user *info) {
+    //printk(KERN_INFO "Arduano Driver: get_serial_info arduino module\n");
     struct serial_struct tmp;
 
     memset(&tmp, 0, sizeof(tmp));
@@ -907,6 +952,7 @@ static int get_serial_info(struct acm *acm, struct serial_struct __user *info) {
 
 static int set_serial_info(struct acm *acm,
                            struct serial_struct __user *newinfo) {
+    //printk(KERN_INFO "Arduano Driver: set_serial_info arduino module\n");
     struct serial_struct new_serial;
     unsigned int closing_wait, close_delay;
     int retval = 0;
@@ -936,6 +982,7 @@ static int set_serial_info(struct acm *acm,
 }
 
 static int wait_serial_change(struct acm *acm, unsigned long arg) {
+    //printk(KERN_INFO "Arduano Driver: wait_serial_change arduino module\n");
     int rv = 0;
     DECLARE_WAITQUEUE(wait, current);
     struct async_icount old, new;
@@ -979,6 +1026,7 @@ static int wait_serial_change(struct acm *acm, unsigned long arg) {
 
 static int acm_tty_get_icount(struct tty_struct *tty,
                               struct serial_icounter_struct *icount) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_get_icount arduino module\n");
     struct acm *acm = tty->driver_data;
 
     icount->dsr = acm->iocount.dsr;
@@ -994,6 +1042,7 @@ static int acm_tty_get_icount(struct tty_struct *tty,
 
 static int acm_tty_ioctl(struct tty_struct *tty,
                          unsigned int cmd, unsigned long arg) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_ioctl arduino module\n");
     struct acm *acm = tty->driver_data;
     int rv = -ENOIOCTLCMD;
 
@@ -1020,6 +1069,7 @@ static int acm_tty_ioctl(struct tty_struct *tty,
 
 static void acm_tty_set_termios(struct tty_struct *tty,
                                 struct ktermios *termios_old) {
+    //printk(KERN_INFO "Arduano Driver: acm_tty_set_termios arduino module\n");
     struct acm *acm = tty->driver_data;
     struct ktermios *termios = &tty->termios;
     struct usb_cdc_line_coding newline;
@@ -1082,6 +1132,7 @@ static const struct tty_port_operations acm_port_ops = {
 
 /* Little helpers: write/read buffers free */
 static void acm_write_buffers_free(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_write_buffers_free arduino module\n");
     int i;
     struct acm_wb *wb;
 
@@ -1090,6 +1141,7 @@ static void acm_write_buffers_free(struct acm *acm) {
 }
 
 static void acm_read_buffers_free(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_read_buffers_free arduino module\n");
     int i;
 
     for (i = 0; i < acm->rx_buflimit; i++)
@@ -1099,6 +1151,7 @@ static void acm_read_buffers_free(struct acm *acm) {
 
 /* Little helper: write buffers allocate */
 static int acm_write_buffers_alloc(struct acm *acm) {
+    //printk(KERN_INFO "Arduano Driver: acm_write_buffers_alloc arduino module\n");
     int i;
     struct acm_wb *wb;
 
@@ -1120,6 +1173,7 @@ static int acm_write_buffers_alloc(struct acm *acm) {
 
 static int acm_probe(struct usb_interface *intf,
                      const struct usb_device_id *id) {
+    //printk(KERN_INFO "Arduano Driver: acm_probe arduino module\n");
     struct usb_cdc_union_desc *union_header = NULL;
     struct usb_cdc_call_mgmt_descriptor *cmgmd = NULL;
     unsigned char *buffer = intf->altsetting->extra;
@@ -1466,6 +1520,7 @@ alloc_fail:
 }
 
 static void acm_disconnect(struct usb_interface *intf) {
+    //printk(KERN_INFO "Arduano Driver: acm_disconnect arduino module\n");
     struct acm *acm = usb_get_intfdata(intf);
     struct tty_struct *tty;
 
@@ -1507,6 +1562,7 @@ static void acm_disconnect(struct usb_interface *intf) {
 
 #ifdef CONFIG_PM
 static int acm_suspend(struct usb_interface *intf, pm_message_t message) {
+    //printk(KERN_INFO "Arduano Driver: acm_suspend arduino module\n");
     struct acm *acm = usb_get_intfdata(intf);
     int cnt;
 
@@ -1530,6 +1586,7 @@ static int acm_suspend(struct usb_interface *intf, pm_message_t message) {
 }
 
 static int acm_resume(struct usb_interface *intf) {
+    //printk(KERN_INFO "Arduano Driver: acm_resume arduino module\n");
     struct acm *acm = usb_get_intfdata(intf);
     struct urb *urb;
     int rv = 0;
@@ -1566,6 +1623,7 @@ out:
 }
 
 static int acm_reset_resume(struct usb_interface *intf) {
+    //printk(KERN_INFO "Arduano Driver: acm_reset_resume arduino module\n");
     struct acm *acm = usb_get_intfdata(intf);
 
     if (tty_port_initialized(&acm->port))
@@ -1577,22 +1635,13 @@ static int acm_reset_resume(struct usb_interface *intf) {
 #endif /* CONFIG_PM */
 
 static int acm_pre_reset(struct usb_interface *intf) {
+    //printk(KERN_INFO "Arduano Driver: acm_pre_reset arduino module\n");
     struct acm *acm = usb_get_intfdata(intf);
 
     clear_bit(EVENT_RX_STALL, &acm->flags);
 
     return 0;
 }
-
-#define NOKIA_PCSUITE_ACM_INFO(x) \
-        USB_DEVICE_AND_INTERFACE_INFO(0x0421, x, \
-        USB_CLASS_COMM, USB_CDC_SUBCLASS_ACM, \
-        USB_CDC_ACM_PROTO_VENDOR)
-
-#define SAMSUNG_PCSUITE_ACM_INFO(x) \
-        USB_DEVICE_AND_INTERFACE_INFO(0x04e7, x, \
-        USB_CLASS_COMM, USB_CDC_SUBCLASS_ACM, \
-        USB_CDC_ACM_PROTO_VENDOR)
 
 /*
  * USB driver structure.
@@ -1648,6 +1697,7 @@ static const struct tty_operations acm_ops = {
  */
 
 static int __init acm_init(void) {
+    //printk(KERN_INFO "Arduano Driver: acm_init arduino module\n");
     int retval;
     acm_tty_driver = alloc_tty_driver(ACM_TTY_MINORS);
     if (!acm_tty_driver)
@@ -1677,12 +1727,13 @@ static int __init acm_init(void) {
         return retval;
     }
 
-    printk(KERN_INFO KBUILD_MODNAME ": " DRIVER_DESC "\n");
+    //printk(KERN_INFO KBUILD_MODNAME ": " DRIVER_DESC "\n");
 
     return 0;
 }
 
 static void __exit acm_exit(void) {
+    //printk(KERN_INFO "Arduano Driver: acm_exit arduino module\n");
     usb_deregister(&acm_driver);
     tty_unregister_driver(acm_tty_driver);
     put_tty_driver(acm_tty_driver);

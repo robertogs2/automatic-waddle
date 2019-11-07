@@ -4,7 +4,6 @@ source_/home/roberto/Documents/github/automatic-waddle/driver4/arduano.o := /hom
 
 deps_/home/roberto/Documents/github/automatic-waddle/driver4/arduano.o := \
     $(wildcard include/config/pm.h) \
-    $(wildcard include/config/input/ims/pcu.h) \
   include/linux/compiler_types.h \
     $(wildcard include/config/have/arch/compiler/h.h) \
     $(wildcard include/config/enable/must/check.h) \
