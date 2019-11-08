@@ -1,6 +1,6 @@
 CC = gcc -o
 EXE = main
-ARDUINOCOMMS_LIB = lib_lpthread.a
+ARDUINOCOMMS_LIB = libarduinocomms.a
 
 LIB_DIR = ../lib/
 INCLUDE_DIR = ../include/

@@ -1,6 +1,6 @@
 ARDUINO_COMMS_LIB = libarduinocomms.a
 ARDUINO_COMMS_SRC = arduinocomms.c
-ARDUINO_COMMAND_OBJ = $(ARDUINO_COMMS_SRC):.c=.o
+ARDUINO_COMMAND_OBJ = arduinocomms.o
 
 INC_DIR = ../include/
 LIB_DIR=../lib/

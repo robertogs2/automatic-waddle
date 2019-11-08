@@ -5,21 +5,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE
+#define BUFFER_SIZE 256
+
+#define FILE_ERROR -1
 
 typedef struct{
 	char buffer[BUFFER_SIZE];
-	char* filename;
-} arduino_comm_t;
+	const char* filename;
+	FILE* ptr;
+	char opened;
+} arduino_t;
 
-int init_arduino_comm(arduino_comm_t* interface, const char* filename);
+int arduino_init(arduino_t* interface, const char* filename);
+int arduino_exit(arduino_t* interface);
 
-int sendchar(arduino_comm_t* interface, const char c);
-int sendstring(arduino_comm_t* interface, const char* string);
-int sendline(arduino_comm_t* interface, const char* line);
+int arduino_sendchar(arduino_t* interface, const char c);
+int arduino_sendstring(arduino_t* interface, const char* string);
+int arduino_sendline(arduino_t* interface, const char* line);
 
-char readchar(arduino_comm_t* interface);
-unsigned int readstring(arduino_comm_t* interface, char* result, unsigned int nbytes);
-unsigned int readline(arduino_comm_t* interface, char* result, unsigned int nbytes);
+char arduino_readchar(arduino_t* interface);
+int arduino_readstring(arduino_t* interface, char* result, unsigned int nbytes);
+int arduino_readline(arduino_t* interface, char* result);
 
 #endif
