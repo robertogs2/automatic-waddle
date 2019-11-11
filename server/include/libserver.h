@@ -29,30 +29,12 @@ uint8_t listen_server(server_t *server);
 uint8_t init_server(server_t *server, int port);
 uint8_t close_server(server_t *server);
 
-char *get_ip(client_t *client) {
-    struct sockaddr_in *addr_in = (struct sockaddr_in *) &client->client_sockaddr;
-    char *ip = inet_ntoa(addr_in->sin_addr);
-    return ip;
-}
-uint8_t accept_client(server_t *server, client_t *client) {
-    client->length = sizeof(client->client_sockaddr);
-    client->socket_descriptor = accept(server->socket_descriptor,
-                                       &client->client_sockaddr,
-                                       &client->length);
-    if(client->socket_descriptor == -1) {
-        close(client->socket_descriptor);
-        return ACCEPT_ERROR;
-    }
-    // Clears buffer
-    memset(client->buffer, 0, BUFFER_SIZE);
-    // Reads the incoming data
-    read(client->socket_descriptor, client->buffer, BUFFER_SIZE);
-    client->ip = get_ip(client);
-    return 0;
-}
-uint8_t close_client(client_t *client) {
-    close(client->socket_descriptor);
-    return 0;
-}
+char *get_ip(client_t *client);
+uint8_t accept_client(server_t *server, client_t *client);
+uint8_t close_client(client_t *client);
+uint8_t process_client(client_t *client);
 
+void trim_query_line(client_t *client);
+void delimit_query(client_t *client);
+uint8_t process_query(client_t* client);
 #endif
