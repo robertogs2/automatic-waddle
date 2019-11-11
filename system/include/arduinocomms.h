@@ -1,5 +1,5 @@
-#ifndef ARDUINOCOMMS 
-#define ARDUINOCOMMS 
+#ifndef ARDUINOCOMMS_H
+#define ARDUINOCOMMS_H 
 
 #include <malloc.h>
 #include <stdio.h>
