@@ -16,32 +16,32 @@
 
 #define BUFFER_SIZE 2048
 
-static const char* html_web_error =
-        "HTTP/1.1 200 Ok\r\n"
-        "Content-Type: text/html; charset=UTF-8\r\n\r\n"
-        "<!DOCTYPE html>\r\n"
-        "<html><head><br><br><br><br><title>WebService</title>\r\n"
-        "<style>body { background-color: #008080 }</style></head>\r\n"
-        "<body><center><h1>Error 404 Not Found</h1><br>\r\n"
-        "</center></body></html>\r\n";
+static const char *html_web_error =
+    "HTTP/1.1 200 Ok\r\n"
+    "Content-Type: text/html; charset=UTF-8\r\n\r\n"
+    "<!DOCTYPE html>\r\n"
+    "<html><head><br><br><br><br><title>WebService</title>\r\n"
+    "<style>body { background-color: #008080 }</style></head>\r\n"
+    "<body><center><h1>Error 404 Not Found</h1><br>\r\n"
+    "</center></body></html>\r\n";
 
-static const char* html_web_image =
-        "HTTP/1.1 200 Ok\r\n"
-        "Content-Type: image/png\r\n\r\n";
+static const char *html_web_image =
+    "HTTP/1.1 200 Ok\r\n"
+    "Content-Type: image/png\r\n\r\n";
 
-static const char* html_web_text =
-        "HTTP/1.1 200 Ok\r\n"
-        "Content-Type: text/plain\r\n\r\n";
+static const char *html_web_text =
+    "HTTP/1.1 200 Ok\r\n"
+    "Content-Type: text/plain\r\n\r\n";
 
-static const char* html_web_file =
-        "HTTP/1.1 200 Ok\r\n"
-        "Content-Type: image/*\r\n\r\n";
+static const char *html_web_file =
+    "HTTP/1.1 200 Ok\r\n"
+    "Content-Type: image/*\r\n\r\n";
 
-int file_size(const char* path){
-  struct stat buffer;
-  int status = stat(path, &buffer);
-  if(status==0) return buffer.st_size;
-  else return 0;
+int file_size(const char *path) {
+    struct stat buffer;
+    int status = stat(path, &buffer);
+    if(status == 0) return buffer.st_size;
+    else return 0;
 }
 
 int send_file(char *file_path, int client_socket_descriptor) {
@@ -75,36 +75,36 @@ int send_file(char *file_path, int client_socket_descriptor) {
 //     }
 // }
 
-char* get_ip(struct sockaddr client){
-    struct sockaddr_in* addr_in = (struct sockaddr_in*) &client;
-    char *s = inet_ntoa(addr_in->sin_addr);
-    return s;
-}
+// char *get_ip(struct sockaddr client) {
+//     struct sockaddr_in *addr_in = (struct sockaddr_in *) &client;
+//     char *s = inet_ntoa(addr_in->sin_addr);
+//     return s;
+// }
 
-void trim_line(char* buffer){
+void trim_line(char *buffer) {
     int i = 0;
-    while(buffer[i]!='\0'){
-        if(buffer[i]=='\n') buffer[i]='\0';
+    while(buffer[i] != '\0') {
+        if(buffer[i] == '\n') buffer[i] = '\0';
         ++i;
     }
 }
 
-char* actual_query(char* buffer){
+char *actual_query(char *buffer) {
     int i = 0;
     int s = 0;
-    int in_query=0;
-    while(buffer[i]!='\0'){
-        if(in_query==0&&buffer[i]=='/'){
-            s=i; //sets start
-            in_query=1;
+    int in_query = 0;
+    while(buffer[i] != '\0') {
+        if(in_query == 0 && buffer[i] == '/') {
+            s = i; //sets start
+            in_query = 1;
         }
-        if(in_query==1&&buffer[i]==' '){
-            buffer[i]='\0';
+        if(in_query == 1 && buffer[i] == ' ') {
+            buffer[i] = '\0';
             break;
         }
         ++i;
     }
-    return buffer+s;
+    return buffer + s;
 }
 
 // void send_picture(int client_socket_descriptor, int count){
@@ -129,7 +129,7 @@ char* actual_query(char* buffer){
 //     if(strncmp(query, "/login", 6)==0){
 //         server_log("Login in");
 //         write(client_socket_descriptor, html_web_text, sizeof(html_web_text) - 1);
-//         strcpy(ip, get_ip(client));                             // Copies the ip   
+//         strcpy(ip, get_ip(client));                             // Copies the ip
 //         server_log("Login done");
 //     }
 //     else if(using_ip){
@@ -159,10 +159,10 @@ char* actual_query(char* buffer){
 //     }
 // }
 
-int process(int client_socket_descriptor, struct sockaddr client, char* client_buffer){
+int process(int client_socket_descriptor, struct sockaddr client, char *client_buffer) {
 
     trim_line(client_buffer);
-    char* query = actual_query(client_buffer);
+    char *query = actual_query(client_buffer);
     //server_log(query);
     //process_query(client_socket_descriptor, client, query);
 
@@ -170,67 +170,20 @@ int process(int client_socket_descriptor, struct sockaddr client, char* client_b
 }
 
 int main(int argc, char *argv[]) {
-
-    //int server_socket_descriptor, port;
-    int client_socket_descriptor;
-    //struct sockaddr_in direction;
-    struct sockaddr client;
-    socklen_t client_length = sizeof(client);
-    char client_buffer[BUFFER_SIZE];
-    char *extension, *residue;
-
-    // // Creates the server socket descriptor
-    // server_socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
-    // if (server_socket_descriptor == -1) {
-    //     server_log("Error creating socket");
-    //     exit(1);
-    // }
-
-    // // Sets the port
-    // if (argc >= 2) {
-    //     port = strtol(argv[1], &residue, 10);           //define port given by the user
-    // } 
-    // else {
-    //     port = 8888;                                    //default port
-    // }
-    // printf("Port set to %d\n", port);
-    
-    // // Sets the sockaddr
-    // direction = get_direction(port);
-
-    // // Binds the server socket
-    // bind_server_socket(server_socket_descriptor, direction);
-
-    // // Sets the server socket to listen
-    // listen_server(server_socket_descriptor);
-    // server_log("Server initiated");
-
+    int port = 8877;
     server_t server;
-    if(init_server(&server, 8888)) exit(1);
-
+    if(init_server(&server, port)) exit(1);
+    printf("Now listening on port %d\n", port);
     while (1) {
-        client_socket_descriptor = accept(server.socket_descriptor, &client, &client_length);
-
-        if (client_socket_descriptor == -1) {
-            close(server.socket_descriptor);
-            //server_log("Accept error");
-            exit(1);
+        client_t client;
+        if(accept_client(&server, &client) == 0) {
+            printf("New client received coming from ip %s\n", client.ip);
+            // if(process(client_socket_descriptor, client, client_buffer) == -1) {
+            //     close(server.socket_descriptor);
+            //     exit(1);
+            // }
+            close_client(&client);
         }
-        //server_log("New request");
-
-        // Clean read buffer
-        memset(client_buffer, 0, BUFFER_SIZE);
-        read(client_socket_descriptor, client_buffer, BUFFER_SIZE);
-
-        if(process(client_socket_descriptor, client, client_buffer)==-1){
-            close(server.socket_descriptor);
-            exit(1);
-        }
-
-        close(client_socket_descriptor);
     }
-
-    //server_log("Server: Stop");
-
-    close(server.socket_descriptor);
+    close_server(&server);
 }
