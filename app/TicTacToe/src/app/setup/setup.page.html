@@ -1,0 +1,56 @@
+<ion-header>
+    <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/"></ion-back-button>
+          </ion-buttons>
+      <ion-title>
+        Setup Game
+      </ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+<ion-content>
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <ion-card>
+          <ion-card-content>
+            <ion-item>
+            <ion-label position="floating">Enter username</ion-label>
+            <ion-input type="text" id="input-username" [(ngModel)]="username"></ion-input>
+            </ion-item>
+            <ion-item>
+                <ion-label>Game Size</ion-label>
+                <ion-select value=0 okText="Okay" cancelText="Dismiss" #A [(ngModel)]="A.value" (ngModelChange)="onUpdateGameSize(A.value)">
+                  <ion-select-option value=0>Full Page</ion-select-option>
+                  <ion-select-option value=1>1/2 Page</ion-select-option>
+                  <ion-select-option value=2>1/4 Page</ion-select-option>
+                </ion-select>
+            </ion-item>
+            <ion-item>
+                <ion-label>Game Type</ion-label>
+                <ion-select value=0 okText="Okay" cancelText="Dismiss" #B [(ngModel)]="B.value" (ngModelChange)="onUpdateGameType(B.value)">
+                  <ion-select-option value=0>User vs PC</ion-select-option>
+                  <ion-select-option value=1>User vs User</ion-select-option>
+                </ion-select>
+            </ion-item>
+            <ion-item>
+                <ion-label>Symbol</ion-label>
+                <ion-select value=0 okText="Okay" cancelText="Dismiss" #C [(ngModel)]="C.value" (ngModelChange)="onUpdateSymbol(C.value)">
+                  <ion-select-option value=0>|</ion-select-option>
+                  <ion-select-option value=1>||</ion-select-option>
+                  <ion-select-option value=2>|||</ion-select-option>
+                </ion-select>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+        <ion-col size-md="4" offset-md="4">
+            <ion-button expand="block" shape="round" size="large" id="btn-confirm" color="success" (click)=onConfirm()>
+              <ion-icon slot="start" name="arrow-forward" ></ion-icon>Confirm</ion-button>
+        </ion-col>
+      </ion-row>
+  </ion-grid>
+</ion-content>

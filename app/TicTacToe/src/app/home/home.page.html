@@ -1,0 +1,39 @@
+<ion-header>
+  <ion-toolbar slot="start" color="primary">
+    <ion-title>
+      Tic Tac Toe!
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+<ion-grid>
+  <ion-row>
+    <ion-col>
+      <ion-img src="assets/tic-tac-toe.png" size="small"></ion-img>
+    </ion-col>
+  </ion-row>
+  <ion-row>
+    <ion-col size-md="4" offset-md="4">
+      <ion-card>
+        <ion-card-content>
+            <ion-item>
+            <ion-label position="floating">Enter IP</ion-label>
+            <ion-input type="text" id="input-ip" [(ngModel)]="inputIP"></ion-input>
+            </ion-item>
+            <ion-item>
+            <ion-label position="floating">Enter port</ion-label>
+            <ion-input type="text" id="input-port" [(ngModel)]="inputPort"></ion-input>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+    </ion-col>
+  </ion-row>
+<ion-row>
+    <ion-col size-md="4" offset-md="4">
+        <ion-button expand="block" shape="round" size="large" id="btn-confirm" color="success" (click)=onConfirm()>
+          <ion-icon slot="start" name="arrow-forward" ></ion-icon>Confirm</ion-button>
+    </ion-col>
+  </ion-row>
+</ion-grid>
+</ion-content>
