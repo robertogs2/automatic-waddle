@@ -15,8 +15,15 @@ pinMode(STEPPER_PIN_4, OUTPUT);
 }
 
 void loop() {
-  OneStep(false);
-  delay(2);
+  for (int i = 0; i<2500; i++){
+    OneStep(true);
+    delay(2);
+  }
+  for (int i = 0; i<2500; i++){
+    OneStep(false);
+    delay(2);
+  }
+
 }
 
 
