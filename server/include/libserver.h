@@ -2,6 +2,7 @@
 #define LIB_SERVER_H
 
 #include <stdint.h>
+#include <libarduinocomms.h>
 
 #define SOCKET_ERROR 	1
 #define BIND_ERROR 		2
@@ -25,10 +26,13 @@
 #define SYMBOL_ERROR    2
 #define SIZE_ERROR 		3
 #define AMOUNT_ERROR    4
+#define POSITION_ERROR  5
 
 #define TURN_PLAYER0    0
 #define TURN_PLAYER1    1
 #define TURN_WAITING    2
+
+#define ARDUINO_ACK     'A'
 
 typedef struct{
 	char username0[128];
@@ -44,6 +48,7 @@ typedef struct{
     int matrix[9];
 
     int arduino_on;
+    arduino_t* arduino;
 } game_t;
 
 typedef struct {

@@ -253,7 +253,11 @@ uint8_t send_status(client_t* client, server_t* server){ // This updates the sta
 
     // Read from arduino to see if it already finished
     int arduino_on = 0; // TODOTODOTODO Should read from arduino
-    if(!arduino_on){
+    uint8_t n = arduino_readuntil(server->game->arduino, buffer, ARDUINO_ACK);
+    if(n > 0 && buffer[n-1] == ARDUINO_ACK){
+        arduino_on = 1;
+    }
+    if(!arduino_on){ // Arduino has finished, signal should only be sent when the algorithm is over
         server->game->turn = server->game->next_turn;
         if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC){
             // TODO: Make movement from PC
@@ -266,12 +270,18 @@ uint8_t send_status(client_t* client, server_t* server){ // This updates the sta
             server->game->turn = TURN_WAITING;
             server->game->next_turn = TURN_PLAYER0;
         }
+        // Given the next turn known
+        // Set the next turn now
+        // Even though we are now in waiting 
+        // And maybe the trigger from the call made it already ok, but for first time test
+        if(server->game->turn == TURN_PLAYER1) server->game->next_turn = TURN_PLAYER0;
+        else server->game->next_turn = TURN_PLAYER0;
     }
     else{
         server->game->turn = TURN_WAITING;
     }
 }
-
+// Asumes coming move is correct and enabled
 uint8_t make_move(char* key, char* value, server_t* server){
     if(strncmp(key, "position", 8)==0){
         printf("Setting position");
@@ -280,20 +290,24 @@ uint8_t make_move(char* key, char* value, server_t* server){
             int symbol = 3;
             if(server->game->turn == TURN_PLAYER0){
                 symbol = server->game->symbol0;
-                server->game->next_turn = TURN_PLAYER1;
+                server->game->next_turn = TURN_PLAYER1; // Redundancy, maybe
             }
             else if(server->game->turn == TURN_PLAYER1){
                 symbol = server->game->symbol1;
-                server->game->next_turn = TURN_PLAYER0;
+                server->game->next_turn = TURN_PLAYER0; // Redundancy, maybe
             }
             server->game->matrix[position] = symbol;
             server->game->turn = TURN_WAITING;
-            // Send to arduino
+            // TODOTODOTODO: Send to arduino
+            char to_send[8];
+            sprintf(to_send, "%d%d\n", symbol, position);
+            uint8_t n = arduino_sendstring(server->game->arduino, to_send);
         }
         else{
-            return 5; // TODO: Error should be handled
+            return POSITION_ERROR;
         }
     }
+    return 0;
 }
 
 uint8_t set_params(const char* query, server_t* server, int function){
@@ -349,6 +363,8 @@ uint8_t process_query(client_t* client, server_t* server){
     }
     else if(strncmp(query, "/move", 5)==0){
         uint8_t ret = set_params(query, server, 1);
+        if(ret == POSITION_ERROR) send_json(client, "{\"Status\": \"Position full\"}");
+        else send_json(client, "{\"Status\": \"Ok\"}");
     }
     else{
         send_json(client, "{\"Status\": \"Ok\"}");

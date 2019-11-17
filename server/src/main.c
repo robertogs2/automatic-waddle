@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <sys/syscall.h> // For call to gettid
 #include <libserver.h>
+#include <libarduinocomms.h>
 
 server_t server;
 
@@ -38,6 +39,9 @@ void init_game(game_t* game){
     game->next_turn = TURN_PLAYER1;
     game->arduino_on = 0;
     for(int i = 0; i < 9; ++i) game->matrix[i] = 3;
+    arduino_t *arduino = (arduino_t *) malloc(sizeof(arduino_t));
+    arduino_init(arduino, "/dev/arduino0");
+    game->arduino = arduino;
 }
 
 int main(int argc, char *argv[]) {
