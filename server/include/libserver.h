@@ -42,6 +42,8 @@ typedef struct{
     int turn;
     int next_turn;
     int matrix[9];
+
+    int arduino_on;
 } game_t;
 
 typedef struct {
@@ -77,6 +79,6 @@ uint8_t process_query(client_t* client, server_t* server);
 uint8_t send_text(client_t* client, const char* text);
 uint8_t send_json(client_t* client, const char* text);
 uint8_t send_error(client_t* client);
-uint8_t set_params(const char* query, server_t* server);
+uint8_t set_params(const char* query, server_t* server, int function);
 uint8_t set_game_params(char* key, char* value, server_t* server);
 #endif

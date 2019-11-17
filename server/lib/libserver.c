@@ -113,6 +113,10 @@ uint8_t process_client(client_t *client, server_t* server) {
     delimit_query(client);      // Removes GET till space
     process_query(client, server);      // Processes that query
 }
+uint8_t close_server(server_t *server) {
+    close(server->socket_descriptor);
+    return 0;
+}
 
 void trim_query_line(client_t *client) {
     int i = 0;
@@ -172,15 +176,21 @@ uint8_t set_game_params(char* key, char* value, server_t* server){
     }
     else if(strcmp(key, "type")==0){
         int type = atoi(value);
-        if(type == TYPE_USERXPC){
-            if(server->game->players == 0){
-                server->game->type = type;
+        if(server->game->players == 0){
+            server->game->type = type;
+        }
+        else{
+            if(server->game->type == TYPE_USERXPC){
+                strcpy(server->game->username1, "PC");
+                retval = AMOUNT_ERROR;
+                return retval;
             }
-            else{
+            else if(type == TYPE_USERXPC){
                 strcpy(server->game->username1, "Not assigned");
                 retval = TYPE_ERROR;
                 return retval;
             }
+            
         }
     }
     else if(strcmp(key, "symbol")==0){
@@ -199,6 +209,15 @@ uint8_t set_game_params(char* key, char* value, server_t* server){
             if(server->game->players == 0){
                 server->game->symbol0 = symbol; 
                 server->game->players++;
+                if(server->game->type == TYPE_USERXPC){ // Start the game already!
+                    printf("Starting game\n");
+                    strcpy(server->game->username1, "PC");
+
+                    if(symbol == 0){server->game->symbol1 = 1;}
+                    else if(symbol == 1){server->game->symbol1 = 2;}
+                    else if(symbol == 2){server->game->symbol1 = 0;}
+                    
+                }
             }
             else if(server->game->players == 1){
                 server->game->symbol1 = symbol;
@@ -212,27 +231,72 @@ uint8_t set_game_params(char* key, char* value, server_t* server){
 
 uint8_t send_status(client_t* client, server_t* server){ // This updates the status too
     game_t* game = server->game;
-    // Read from arduino to see if it already finished
     char str[64] = {0};
     int i=0;
     int index = 0;
     for (i=0; i<8; i++) index += sprintf(&str[index], "%d,", server->game->matrix[i]);
     sprintf(&str[index], "%d", server->game->matrix[i]);
 
-    char buffer[256];
-    printf("Got here\n");
+    char buffer[512];
+    printf("Got here %d\n", server->game->turn);
     // Checking the turn
     char* username;
     if(server->game->turn == TURN_PLAYER0) username = server->game->username0;
     else if(server->game->turn == TURN_PLAYER1) username = server->game->username1;
-    else username = "none";
-    sprintf(buffer, "{\"Turn\": \"%s\", \"Matrix\": [%s]}", username, str);
+    else username = "PC";
+    sprintf(buffer, "{\"Turn\": \"%s\", \"Matrix\": [%s], \"Username0\":\"%s\", \"Username1\":\"%s\",\"Symbol0\": %d, \"Symbol1\":%d}",
+             username, str, 
+             server->game->username0, server->game->username1, 
+             server->game->symbol0, server->game->symbol1);
     printf("%s\n", buffer);
     send_json(client, buffer);
+
+    // Read from arduino to see if it already finished
+    int arduino_on = 0; // TODOTODOTODO Should read from arduino
+    if(!arduino_on){
+        server->game->turn = server->game->next_turn;
+        if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC){
+            // TODO: Make movement from PC
+            for(int j = 0; j < 9; ++j){
+                if(server->game->matrix[j] == 3){ // TODO Free space
+                    server->game->matrix[j] = server->game->symbol1;
+                    break;
+                }
+            }
+            server->game->turn = TURN_WAITING;
+            server->game->next_turn = TURN_PLAYER0;
+        }
+    }
+    else{
+        server->game->turn = TURN_WAITING;
+    }
 }
 
-uint8_t set_params(const char* query, server_t* server){
-    printf("Query: %s\n", query);
+uint8_t make_move(char* key, char* value, server_t* server){
+    if(strncmp(key, "position", 8)==0){
+        printf("Setting position");
+        int position = atoi(value);
+        if(server->game->matrix[position] == 3){ // Not in use
+            int symbol = 3;
+            if(server->game->turn == TURN_PLAYER0){
+                symbol = server->game->symbol0;
+                server->game->next_turn = TURN_PLAYER1;
+            }
+            else if(server->game->turn == TURN_PLAYER1){
+                symbol = server->game->symbol1;
+                server->game->next_turn = TURN_PLAYER0;
+            }
+            server->game->matrix[position] = symbol;
+            server->game->turn = TURN_WAITING;
+            // Send to arduino
+        }
+        else{
+            return 5; // TODO: Error should be handled
+        }
+    }
+}
+
+uint8_t set_params(const char* query, server_t* server, int function){
     int i = 0;
     char key[128];
     char value[128];
@@ -259,14 +323,14 @@ uint8_t set_params(const char* query, server_t* server){
         }
         value[ii] = '\0';
         i++;
-        printf("Param, key: %s, value: %s\n", key, value);
-        retval = set_game_params(key, value, server);
-        if(retval){
-            return retval;
-        }
+        //printf("Param, key: %s, value: %s\n", key, value);
+        if(function == 0) retval = set_game_params(key, value, server);
+        else if(function == 1) retval = make_move(key, value, server);
+        if(retval) return retval;
     }
     return 0;
 }
+
 
 uint8_t process_query(client_t* client, server_t* server){
     char* query = client->buffer;
@@ -274,19 +338,17 @@ uint8_t process_query(client_t* client, server_t* server){
         send_text(client, "Im dummy");
     }
     else if(strncmp(query, "/setup", 6)==0){
-        uint8_t ret = set_params(query, server);
-        printf("Returng value is %d\n", ret);
+        uint8_t ret = set_params(query, server, 0);
         if(ret == TYPE_ERROR) send_json(client, "{\"Status\": \"Waiting\"}");
         else if(ret == SYMBOL_ERROR) send_json(client, "{\"Status\": \"Busy\"}");
         else if(ret == AMOUNT_ERROR) send_json(client, "{\"Status\": \"Full\"}");
         else send_json(client, "{\"Status\": \"Ok\"}");
     }
     else if(strncmp(query, "/game", 5)==0){
-        printf("Getting game status\n");
         send_status(client, server);
     }
-    else if(strncmp()){
-        
+    else if(strncmp(query, "/move", 5)==0){
+        uint8_t ret = set_params(query, server, 1);
     }
     else{
         send_json(client, "{\"Status\": \"Ok\"}");
