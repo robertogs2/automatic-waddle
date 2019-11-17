@@ -26,21 +26,10 @@ int step_number_x = 0;
 int step_number_y = 0;
 int step_number_z = 0;
 
-
-
 // UART communication
 char rxChar= 0;         // RXcHAR holds the received command.
 
-//=== function to print the command list:  ===========================
-void printHelp(void){
-  Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x step_number_yitive");
-  Serial.println(" a -> Move z step_number_yitive");
-  Serial.println(" d -> Move x negative");
-  Serial.println(" s -> Move z negative");  
-  Serial.println(" e -> Toggle y");  
-  }
-
+// ============================= Default Arduino Functions =============================
 void setup() {
   pinMode(STEPPER_PIN_X1, OUTPUT);
   pinMode(STEPPER_PIN_X2, OUTPUT);
@@ -61,6 +50,25 @@ void loop(){
   serial();
 }
 
+// ============================= Serial Communication =============================
+
+/** Help function that lists the commands available through serial().
+ *  Set the line ending to "No line ending"
+ * 
+ */
+void printHelp(void){
+  Serial.println("---- Command list: ----");
+  Serial.println(" w -> Move x step_number_yitive");
+  Serial.println(" a -> Move z step_number_yitive");
+  Serial.println(" d -> Move x negative");
+  Serial.println(" s -> Move z negative");  
+  Serial.println(" e -> Toggle y");  
+  }
+
+/** Serial communication with the cnc machine.
+ *  Set the line ending to "No line ending"
+ * 
+ */
 void serial () {
   int n = 2000;
   if (Serial.available() >0){          // Check receive buffer.
@@ -127,6 +135,8 @@ void serial () {
   }
 }
 
+
+// ============================= Smart Movement Functions =============================
 void move_x (int steps) {
   int dx = current_x-steps;
   bool dir = true;
@@ -136,12 +146,19 @@ void move_x (int steps) {
     dir = false;
     false;
   }
+  current_x += dx;
   for (int i = 0; i<abs(dx); i++){
     OneStepX(dir);
     delay(2);
   }
 }
 
+
+
+// ============================= Engine Functions =============================
+
+/** Demo function that moves both X and Z axys at the same time
+*/
 void demo() {
   for (int i = 0; i<4000; i++){
     OneStepX(true);
@@ -155,7 +172,10 @@ void demo() {
   }
 }
 
-
+/** One step for the X-axys. Add to a for loop ~500 iterations
+ *  
+ *  bool dir: direction of movement of the motor
+ */
 void OneStepX(bool dir){
   if(dir){
     switch(step_number_x ){
@@ -217,6 +237,10 @@ void OneStepX(bool dir){
     }
 }
 
+/** One step for the Z-axys. Add to a for loop ~500 iterations
+ *  
+ *  bool dir: direction of movement of the motor
+ */
 void OneStepZ(bool dir){
   if(dir){
     switch(step_number_z){
@@ -278,6 +302,8 @@ void OneStepZ(bool dir){
     }
 }
 
+/** One step for the Y-axys. Toggles the position of the writer head
+ */
 void OneStepY () {
   if (current_y){
       myservo.write(0);              // tell servo to go to step_number_yition in variable 'step_number_y'
