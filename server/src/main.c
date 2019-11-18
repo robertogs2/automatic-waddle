@@ -23,6 +23,7 @@
 server_t server;
 
 void close_socket(){
+    printf("Killing\n");
     close_server(&server);
     kill(getpid(), SIGKILL);
 }

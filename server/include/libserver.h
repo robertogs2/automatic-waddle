@@ -33,6 +33,7 @@
 #define TURN_WAITING    2
 
 #define ARDUINO_ACK     'A'
+#define ARDUINO_ON      0
 
 typedef struct{
 	char username0[128];
