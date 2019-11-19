@@ -350,6 +350,12 @@ void OneStepY () {
     }
   }
 
+void resetY () {
+    myservo.write(180);              // tell servo to go to step_number_yition in variable 'step_number_y'
+    delay(15);                       // waits 15ms for the servo to reach the step_number_yition
+    current_y = 1;
+  }
+
 // ============================= Serial Communication =============================
 void split(String input, char delimiter, String* results){
  int t = 0;
@@ -381,6 +387,7 @@ void analize_command(String command){
     pageSize = 2;
   } else if (command=="c") {
     OneStepY();
+    Serial.println("A");
   } else {
     int symbol = atoi(command.charAt(0));
     int square = atoi(command.charAt(1));
@@ -408,42 +415,6 @@ void printHelp(void){
   Serial.println(" q -> Diagonal away from origin"); 
 }
 
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- *  Prints "P" when done
- */
-void driver () {
-  int n = 2000;
-  if (Serial.available() >0){          // Check receive buffer.
-    rxChar = Serial.read();            // Save character received. 
-    Serial.flush();                    // Clear receive buffer.
-  
-  switch (rxChar) {
-    case 'x':
-    case 'X':
-      move_x(5000);
-      Serial.println("P");
-      break;
-      
-    case 'z':
-    case 'Z':
-      move_z(5000);
-      Serial.println("P");
-      break;
-
-    case 'd':
-    case 'D':                          // If received  's' or 'S':
-      drawFig(0);
-      Serial.println("P");
-      break;
-
-    default:
-      Serial.println("Input is not a command!");
-      Serial.println("P");
-    }
-  }
-}
-
   // ============================= Default Arduino Functions =============================
 void setup() {
   pinMode(STEPPER_PIN_X1, OUTPUT);
@@ -460,7 +431,7 @@ void setup() {
   Serial.flush();       // Clear receive buffer.
   //printHelp();        // Print the command list.
 
-  OneStepY();
+  resetY();
 }
 
 void loop() {
