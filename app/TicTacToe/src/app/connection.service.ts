@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class ConnectionService {
   private port: string = "8080";
-  private ip: string = "192.168.0.22";
+  private ip: string = "192.168.0.18";
   private username: string = "Jime";
   private game_type: Number;
   private game_size: Number;
