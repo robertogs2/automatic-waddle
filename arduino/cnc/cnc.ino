@@ -58,10 +58,10 @@ void loop(){
  */
 void printHelp(void){
   Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x positive");
-  Serial.println(" s -> Move x negative");  
-  Serial.println(" a -> Move z negative");
-  Serial.println(" d -> Move z positive");
+  Serial.println(" w -> Move x step_number_yitive");
+  Serial.println(" a -> Move z step_number_yitive");
+  Serial.println(" d -> Move x negative");
+  Serial.println(" s -> Move z negative");  
   Serial.println(" e -> Toggle y"); 
   Serial.println(" q -> Diagonal away from origin"); 
   }
@@ -72,7 +72,7 @@ void printHelp(void){
  */
 void serial () {
   int n = 2000;
-  if (Serial.available() > 0){          // Check receive buffer.
+  if (Serial.available() >0){          // Check receive buffer.
     rxChar = Serial.read();            // Save character received. 
     Serial.flush();                    // Clear receive buffer.
   
@@ -134,6 +134,180 @@ void serial () {
       Serial.println("Input is not a command!");
     }
   }
+}
+
+/** Serial communication with the cnc machine for manual control.
+ *  Set the line ending to "No line ending"
+ *  Prints "P" when done
+ */
+void driver () {
+  int n = 2000;
+  if (Serial.available() >0){          // Check receive buffer.
+    rxChar = Serial.read();            // Save character received. 
+    Serial.flush();                    // Clear receive buffer.
+  
+  switch (rxChar) {
+    case 'x':
+    case 'X':
+      move_x(5000);
+      Serial.println("P");
+      break;
+      
+    case 'z':
+    case 'Z':
+      move_z(5000);
+      Serial.println("P");
+      break;
+
+    case 'd':
+    case 'D':                          // If received  's' or 'S':
+      drawFig(0);
+      Serial.println("P");
+      break;
+
+    default:
+      Serial.println("Input is not a command!");
+      Serial.println("P");
+    }
+  }
+}
+
+// ============================= Smart Movement Functions =============================
+
+/** To calibrate, set pen on the writting position point (*** test required)
+ * 
+ */
+void calibrate(int pageSize) {
+  OneStepY();
+  current_x = 0;
+  current_y = 0;
+  current_z = 0;
+
+  max_x = pageSize;
+  max_z = pageSize;
+}
+
+/** Move in x, checks if within drawing space, updates location of the head 
+ * 
+ */
+void move_x (int target) {
+  int dx = current_x-target;
+  bool dir = false;
+  if (dx < 0) {
+    dir = true;
+  }
+  int target = current_x+dx;
+  if (target<0 & target>max_x) {
+    Serial.println("Ilegal movement");
+  } else {
+    current_x += dx;
+    for (int i = 0; i<abs(dx); i++){
+      OneStepX(dir);
+      delay(2);
+    }
+    Serial.println(current_x);
+  }
+}
+
+/** Move in z, checks if within drawing space, updates location of the head 
+ * 
+ */
+void move_z (int target) {
+  int dz = current_z-target;
+  bool dir = false;
+  if (dz < 0) {
+    dir = true;
+  }
+  int target = current_z+dz;
+  if (target<0 & target>max_z) {
+    Serial.println("Ilegal movement");
+  } else {
+    current_z += dz;
+    for (int i = 0; i<abs(dz); i++){
+      OneStepZ(dir);
+      delay(2);
+    }
+    Serial.println(current_z);
+  }
+}
+
+/** First symbol 
+ *  
+ */
+void drawLine(int pageSize){
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(false);
+    delay(2);
+  }
+  OneStepY();     // stop writting
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(true);
+    delay(2);
+  }
+}
+
+/** Second symbol 
+ *  
+ */
+void drawAngle(int pageSize){
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(false);
+    delay(2);
+  }
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepZ(false);
+    delay(2);
+  }
+  OneStepY();     // stop writting
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(true);
+    delay(2);
+  }
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepZ(true);
+    delay(2);
+  }
+}
+
+/** Third symbol 
+ *  
+ */
+void drawTriangle(int pageSize){
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(false);
+    OneStepZ(false);
+    delay(2);
+  }
+  for (int i = 0; i<pageSize*1000; i++){
+    OneStepX(false);
+    OneStepZ(true);
+    delay(2);
+  }
+  for (int i = 0; i<pageSize*2000; i++){
+    OneStepX(true);
+    delay(2);
+  }
+  OneStepY();     // stop writting
+}
+
+/** Choose a figure to draw
+ * 
+ */
+void drawFig(int fig, int pageSize) {
+  OneStepY();     // start writting
+  switch(fig):
+    case 0:
+      drawLine(pageSize);
+      break;
+    case 1:
+      drawAngle(pageSize);
+      break;
+    case 2:
+      drawTriangle(pageSize);
+      break;
+    default:
+      OneStepY();     // stop writting (dot)
+      break; 
 }
 
 // ============================= Engine Functions =============================

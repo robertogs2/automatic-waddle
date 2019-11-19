@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 
 #include <stdio.h>
-#include <arduinocomms.h>
+#include <libarduinocomms.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -10,7 +10,7 @@ int arduino_init(arduino_t *interface, const char *filename) {
     interface->ptr = fopen(interface->filename, "r+");
     if(interface->ptr){
     	interface->opened = 1;
-    	sleep(2);
+    	sleep(1);
     }
     return interface->opened;
 }
@@ -52,8 +52,26 @@ int arduino_readline(arduino_t *interface, char *result) {
     	return FILE_ERROR;
     }
     count = 0;
-    while((c = fgetc(interface->ptr)) != '\n') {
+    while((c = fgetc(interface->ptr)) != '\n') { // Make it blocking
         if(c > 0 && c != EOF) result[count++] = (char)c;
+    }
+    if(count) result[count] = 0;
+    return count;
+}
+
+int arduino_readuntil(arduino_t *interface, char *result, char delimiter) {
+    int c;
+    unsigned int count;
+    if(!interface->ptr){
+        return FILE_ERROR;
+    }
+    count = 0;
+    while((c = fgetc(interface->ptr)) != delimiter) {
+        if(c == EOF){
+            break;
+        }
+        else if(c > 0 && c != EOF) result[count++] = (char)c;
+
     }
     if(count) result[count] = 0;
     return count;

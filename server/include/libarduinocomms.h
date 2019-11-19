@@ -26,5 +26,6 @@ int arduino_sendline(arduino_t* interface, const char* line);
 char arduino_readchar(arduino_t* interface);
 int arduino_readstring(arduino_t* interface, char* result, unsigned int nbytes);
 int arduino_readline(arduino_t* interface, char* result);
+int arduino_readuntil(arduino_t *interface, char *result, char delimiter);
 
 #endif
