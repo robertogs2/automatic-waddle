@@ -64,7 +64,10 @@ int get_square_z(int row, int col){
   return square_z[row*3+col];
 }
 
-
+// ============================= Forward Declarations =============================
+void resetY ();
+void OneStepX(bool dir);
+void OneStepZ(bool dir);
 
 // ============================= Smart Movement Functions =============================
 
@@ -72,10 +75,9 @@ int get_square_z(int row, int col){
  * 
  */
 void calibrate(int pageSize) {
-  OneStepY();
   current_x = 0;
-  current_y = 0;
   current_z = 0;
+  resetY();
 }
 
 void reset () {
@@ -128,25 +130,39 @@ void move_z (int target) {
     current_z = target;
     //Serial.println(current_z);
   }
+
+int getLineSize () {
+  //int lineSize = 3000;
+  if (pageSize == 1) {
+    return 1830; // lineSize*0.61;
+  } else  if (pageSize == 2) {
+    return 1200; //lineSize*0.35;
+  } else {
+    return 3000; //lineSize;
+  }
+}
 /** First symbol 
  *  
  */
 void drawLine(){
   Serial.println("Drawing line");
-  int paintSize = (3-pageSize)*1000;
-  for (int i = 0; i<500; i++){
-    OneStepX(false);
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize-750; i++){  // Center the line
+    OneStepZ(false);
     delay(2);
   }
   OneStepY();     // start writting
-  
-  for (int i = 0; i<paintSize; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<paintSize; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
+    delay(2);
+  }
+    for (int i = 0; i<lineSize-750; i++){
+    OneStepZ(true);
     delay(2);
   }
 }
@@ -157,21 +173,21 @@ void drawLine(){
 void drawAngle(){
   OneStepY();     // start writting
   Serial.println("Drawing angle");
-  int paintSize = (3-pageSize)*1000;
-  for (int i = 0; i<paintSize; i++){
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     delay(2);
   }
-  for (int i = 0; i<paintSize; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepZ(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<paintSize; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
     delay(2);
   }
-  for (int i = 0; i<paintSize; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepZ(true);
     delay(2);
   }
@@ -183,18 +199,17 @@ void drawAngle(){
 void drawTriangle(){
   OneStepY();     // start writting
   Serial.println("Drawing triangle");
-  int paintSize = (3-pageSize)*1000;
-  for (int i = 0; i<paintSize; i++){
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     OneStepZ(false);
     delay(2);
   }
-  for (int i = 0; i<paintSize; i++){
-    OneStepX(false);
+  for (int i = 0; i<lineSize; i++){
     OneStepZ(true);
     delay(2);
   }
-  for (int i = 0; i<paintSize*2; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
     delay(2);
   }
@@ -435,11 +450,13 @@ void analize_command(String command){
     //Serial.println(square);
     move_x(new_x);
     move_z(new_z);
-    //drawFig(symbol);
+    drawFig(symbol);
+    /*
     OneStepY();
-    delay(500);
+    delay(2500);
     OneStepY();
     delay(15);
+    */
   }
 }
 
