@@ -237,15 +237,13 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
     char buffer[512];
     // Gets the username
     char *username;
-    if(server->game->turn == TURN_PLAYER0){
-        if((server->game->type == TYPE_USERXUSER && server->game->players == 1)){
+    if(server->game->turn == TURN_PLAYER0) {
+        if((server->game->type == TYPE_USERXUSER && server->game->players == 1)) {
             username = "Not assigned";
-        }
-        else{
+        } else {
             username = server->game->username0;
         }
-    }
-    else if(server->game->turn == TURN_PLAYER1) username = server->game->username1;
+    } else if(server->game->turn == TURN_PLAYER1) username = server->game->username1;
     else username = "PC";
     // Gets the game state
 
@@ -279,30 +277,39 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
     }
 
     if(!arduino_on) { // Arduino has finished, signal should only be sent when the algorithm is over
-        server->game->turn = server->game->next_turn;
-        if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC) {
-            // TODO: Make movement from PC
-            while(1) {
-                int j = rand() % 9;
-                if(server->game->matrix[j] == 3) { // TODO Free space
-                    server->game->matrix[j] = server->game->symbol1;
-                    char to_send[8];
-                    sprintf(to_send, "%d%d\n", server->game->symbol1, j);
-                    if(ARDUINO_ON) {
-                        uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+        if(game->game_over == 0) { // Normal logic
+            server->game->turn = server->game->next_turn;
+            if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC) {
+                // TODO: Make movement from PC
+                while(1) {
+                    int j = rand() % 9;
+                    if(server->game->matrix[j] == 3) { // TODO Free space
+                        server->game->matrix[j] = server->game->symbol1;
+                        char to_send[8];
+                        sprintf(to_send, "%d%d\n", server->game->symbol1, j);
+                        if(ARDUINO_ON) {
+                            uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+                        }
+                        break;
                     }
-                    break;
+                }
+                server->game->turn = TURN_WAITING;
+                server->game->next_turn = TURN_PLAYER0;
+            }
+        } else if(game->game_over == 1 && game->turn != TURN_WAITING) {
+            printf("Game over and sending it to arduino\n");
+            if(game->game_win != -1) { // Win type
+                char to_send[8];
+                sprintf(to_send, "%d%d\n", 4, game->game_win);
+                if(ARDUINO_ON) {
+                    uint8_t n = arduino_sendstring(server->game->arduino, to_send);
                 }
             }
-            server->game->turn = TURN_WAITING;
-            server->game->next_turn = TURN_PLAYER0;
         }
-        // Given the next turn known
-        // Set the next turn now
-        // Even though we are now in waiting
-        // And maybe the trigger from the call made it already ok, but for first time test
-        // if(server->game->turn == TURN_PLAYER1) server->game->next_turn = TURN_PLAYER0;
-        // else server->game->next_turn = TURN_PLAYER1;
+        else if(game->game_over == 1 && game->turn == TURN_WAITING){ // Set to not waiting
+            printf("Game over and not sending it to arduino\n");
+            game->turn = 69420; // random number not turn waiting
+        }
     } else {
         server->game->turn = TURN_WAITING;
     }
@@ -373,7 +380,6 @@ uint8_t set_params(const char *query, server_t *server, int function) {
 
 uint8_t process_query(client_t *client, server_t *server) {
     char *query = client->buffer;
-    printf("%s\n", query);
     if(strcmp(query, "/dummy") == 0) {
         send_text(client, "Im dummy");
     } else if(strncmp(query, "/setup", 6) == 0) {
@@ -388,7 +394,7 @@ uint8_t process_query(client_t *client, server_t *server) {
         uint8_t ret = set_params(query, server, 1);
         if(ret == POSITION_ERROR) send_json(client, "{\"Status\": \"Position full\"}");
         else send_json(client, "{\"Status\": \"Ok\"}");
-    } else if(strncmp(query, "/restart", 8)==0) {
+    } else if(strncmp(query, "/restart", 8) == 0) {
         init_game(server);
     } else {
         send_json(client, "{\"Status\": \"Ok\"}");
