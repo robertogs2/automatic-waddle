@@ -31,135 +31,36 @@ char rxChar = 0;         // RXcHAR holds the received command.
 String command;
 int pageSize = 0;
 
-// ============================= Default Arduino Functions =============================
-void setup() {
-  pinMode(STEPPER_PIN_X1, OUTPUT);
-  pinMode(STEPPER_PIN_X2, OUTPUT);
-  pinMode(STEPPER_PIN_X3, OUTPUT);
-  pinMode(STEPPER_PIN_X4, OUTPUT);
-  pinMode(STEPPER_PIN_Z1, OUTPUT);
-  pinMode(STEPPER_PIN_Z2, OUTPUT);
-  pinMode(STEPPER_PIN_Z3, OUTPUT);
-  pinMode(STEPPER_PIN_Z4, OUTPUT);
-  myservo.attach(SERVO_PIN_Y1);
-  
-  Serial.begin(9600);   // Open serial port (9600 bauds).
-  Serial.flush();       // Clear receive buffer.
-  //printHelp();          // Print the command list.
+// Coords           {l, m, s}
+int square_x [27] = { 3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000};
 
-  OneStepY();
+int square_z [27] = { 3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000,
+                      3000, 2000, 1000};
+
+int get_square_x(int row, int col){
+  return square_x[row*3+col];
 }
 
-void analize_command(String command);
-
-void loop() {
-
- // put your main code here, to run repeatedly:
-  while(true){
-    if(Serial.available()){
-      char c = Serial.read();
-   if(c == '\n' || c == '\r') break;
-   command += c;
-    }
- }
- if(command.length() > 0){
-   analize_command(command);
-   //Serial.println(command);
- }
- command = "";
+int get_square_z(int row, int col){
+  return square_z[row*3+col];
 }
 
 
-// ============================= Serial Communication =============================
-void split(String input, char delimiter, String* results){
- int t = 0;
- int r = 0;
- int i = 0;
- for (i=0; i < input.length(); i++){
-   if(input.charAt(i) == delimiter && input.charAt(i) != '\n') {
-     results[t] = input.substring(r, i);
-     r=(i+1);
-     t++;
-   }
- } 
- results[t] = input.substring(r, i);
-}
-
-void analize_command(String command){
-  if (command=="c") {
-    OneStepY();
-    Serial.println("Zero setted");
-  } else {
-    String split_string [3];
-    split(command, ',', split_string);
-
-    Serial.println("Splitting");
-  
-    for (int i = 0; i<3; i++) {
-      //Serial.println(split_string[i]);
-      String op[2];
-      split(split_string[i], ':', op);
-  
-      if (op[0]=="x") {
-        move_x(op[1].toInt());
-      } else if (op[0]=="z") {
-        move_z(op[1].toInt());
-      } else if (op[0]=="s") {
-        OneStepY();
-      }
-    }
-  }
-}
-
-/** Help function that lists the commands available through serial().
- *  Set the line ending to "No line ending"
- * 
- */
-void printHelp(void){
-  Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x step_number_yitive");
-  Serial.println(" a -> Move z step_number_yitive");
-  Serial.println(" d -> Move x negative");
-  Serial.println(" s -> Move z negative");  
-  Serial.println(" e -> Toggle y"); 
-  Serial.println(" q -> Diagonal away from origin"); 
-}
-
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- *  Prints "P" when done
- */
-void driver () {
-  int n = 2000;
-  if (Serial.available() >0){          // Check receive buffer.
-    rxChar = Serial.read();            // Save character received. 
-    Serial.flush();                    // Clear receive buffer.
-  
-  switch (rxChar) {
-    case 'x':
-    case 'X':
-      move_x(5000);
-      Serial.println("P");
-      break;
-      
-    case 'z':
-    case 'Z':
-      move_z(5000);
-      Serial.println("P");
-      break;
-
-    case 'd':
-    case 'D':                          // If received  's' or 'S':
-      drawFig(0, 0);
-      Serial.println("P");
-      break;
-
-    default:
-      Serial.println("Input is not a command!");
-      Serial.println("P");
-    }
-  }
-}
 
 // ============================= Smart Movement Functions =============================
 
@@ -171,33 +72,45 @@ void calibrate(int pageSize) {
   current_x = 0;
   current_y = 0;
   current_z = 0;
-
-  max_x = pageSize;
-  max_z = pageSize;
 }
 
 /** Move in x, checks if within drawing space, updates location of the head 
  * 
  */
 void move_x (int target) {
-  for (int i = 0; i<target; i++){
-      OneStepX(false);
-      delay(2);
-    }
-    Serial.println(current_x);
+  int dx = target - current_x;
+  if (dx < 0) {
+    for (int i = 0; i<dx; i++){
+        OneStepX(true);
+        delay(2);
+      }
+  } else {
+    for (int i = 0; i<dx; i++){
+        OneStepX(false);
+        delay(2);
+      }
+  }
+    current_x = target;
   }
 
 /** Move in z, checks if within drawing space, updates location of the head 
  * 
  */
 void move_z (int target) {
-  for (int i = 0; i<target; i++){
-      OneStepZ(false);
-      delay(2);
-    }
-    Serial.println(current_z);
+  int dz = target - current_z;
+  if (dz < 0) {
+    for (int i = 0; i<dz; i++){
+        OneStepZ(true);
+        delay(2);
+      }
+  } else {
+    for (int i = 0; i<dz; i++){
+        OneStepZ(false);
+        delay(2);
+      }
   }
-
+    current_z = target;
+  }
 /** First symbol 
  *  
  */
@@ -260,7 +173,7 @@ void drawTriangle(int pageSize){
 /** Choose a figure to draw
  * 
  */
-void drawFig(int fig, int pageSize) {
+void drawFig(int fig) {
   OneStepY();     // start writting
   switch(fig){
     case 0:
@@ -276,6 +189,7 @@ void drawFig(int fig, int pageSize) {
       OneStepY();     // stop writting (dot)
       break;
   }
+   Serial.println("A");
 }
 
 // ============================= Engine Functions =============================
@@ -435,3 +349,133 @@ void OneStepY () {
     current_y = 1;
     }
   }
+
+// ============================= Serial Communication =============================
+void split(String input, char delimiter, String* results){
+ int t = 0;
+ int r = 0;
+ int i = 0;
+ for (i=0; i < input.length(); i++){
+   if(input.charAt(i) == delimiter && input.charAt(i) != '\n') {
+     results[t] = input.substring(r, i);
+     r=(i+1);
+     t++;
+   }
+ } 
+ results[t] = input.substring(r, i);
+}
+
+void analize_command(String command){
+  if (command=="s0") {
+    max_x = 12000;
+    max_z = 16000;
+    pageSize = 0;
+  } else if (command=="s1") {
+    max_x = 12000;
+    max_z = 8000;
+    pageSize = 1;
+  }
+  else if (command=="s2") {
+    max_x = 6000;
+    max_z = 8000;
+    pageSize = 2;
+  } else {
+    int square = atoi(command.charAt(0));
+    int symbol = atoi(command.charAt(1));
+
+    int new_x = get_square_x(square, pageSize);
+    int new_z = get_square_z(square, pageSize);
+    
+    move_x(new_x);
+    move_z(new_z);
+    drawFig(symbol);
+  }
+}
+
+/** Help function that lists the commands available through serial().
+ *  Set the line ending to "No line ending"
+ * 
+ */
+void printHelp(void){
+  Serial.println("---- Command list: ----");
+  Serial.println(" w -> Move x step_number_yitive");
+  Serial.println(" a -> Move z step_number_yitive");
+  Serial.println(" d -> Move x negative");
+  Serial.println(" s -> Move z negative");  
+  Serial.println(" e -> Toggle y"); 
+  Serial.println(" q -> Diagonal away from origin"); 
+}
+
+/** Serial communication with the cnc machine for manual control.
+ *  Set the line ending to "No line ending"
+ *  Prints "P" when done
+ */
+void driver () {
+  int n = 2000;
+  if (Serial.available() >0){          // Check receive buffer.
+    rxChar = Serial.read();            // Save character received. 
+    Serial.flush();                    // Clear receive buffer.
+  
+  switch (rxChar) {
+    case 'x':
+    case 'X':
+      move_x(5000);
+      Serial.println("P");
+      break;
+      
+    case 'z':
+    case 'Z':
+      move_z(5000);
+      Serial.println("P");
+      break;
+
+    case 'd':
+    case 'D':                          // If received  's' or 'S':
+      drawFig(0);
+      Serial.println("P");
+      break;
+
+    default:
+      Serial.println("Input is not a command!");
+      Serial.println("P");
+    }
+  }
+}
+
+  // ============================= Default Arduino Functions =============================
+void setup() {
+  pinMode(STEPPER_PIN_X1, OUTPUT);
+  pinMode(STEPPER_PIN_X2, OUTPUT);
+  pinMode(STEPPER_PIN_X3, OUTPUT);
+  pinMode(STEPPER_PIN_X4, OUTPUT);
+  pinMode(STEPPER_PIN_Z1, OUTPUT);
+  pinMode(STEPPER_PIN_Z2, OUTPUT);
+  pinMode(STEPPER_PIN_Z3, OUTPUT);
+  pinMode(STEPPER_PIN_Z4, OUTPUT);
+  myservo.attach(SERVO_PIN_Y1);
+  
+  Serial.begin(9600);   // Open serial port (9600 bauds).
+  Serial.flush();       // Clear receive buffer.
+  //printHelp();        // Print the command list.
+
+  OneStepY();
+}
+
+void analize_command(String command);
+
+void loop() {
+
+ // put your main code here, to run repeatedly:
+  while(true){
+    if(Serial.available()){
+      char c = Serial.read();
+   if(c == '\n' || c == '\r') break;
+   command += c;
+    }
+ }
+ if(command.length() > 0){
+   analize_command(command);
+   //Serial.println(command);
+ }
+ command = "";
+}
