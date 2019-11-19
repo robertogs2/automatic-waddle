@@ -31,26 +31,30 @@ char rxChar = 0;         // RXcHAR holds the received command.
 String command;
 int pageSize = 0;
 
-// Coords           {l, m, s}
-int square_x [27] = { 3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000};
 
-int square_z [27] = { 3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000,
-                      3000, 2000, 1000};
+// m 0, 1, 2  
+//   3, 4, 5 
+//   6, 7, 8 
+// Coords           {l,     m,     s}
+int square_x [27] = { 2000, 2000, 1500,
+                      2000, 2000, 1500,
+                      2000, 2000, 1500,
+                      5500, 4000, 3000,
+                      5500, 4000, 3000,
+                      5500, 4000, 3000,
+                      9000, 6500, 4500,
+                      9000, 6500, 4500,
+                      9000, 6500, 4500};
+
+int square_z [27] = {10500, 8500, 6000,
+                      7000, 6500, 4500,
+                      3000, 4000, 3000,
+                     10500, 8500, 6000, 
+                      7000, 6500, 4500,
+                      3000, 4000, 3000,
+                     10500, 8500, 6000,
+                      7000, 6500, 4500,
+                      3000, 4000, 3000};
 
 int get_square_x(int row, int col){
   return square_x[row*3+col];
@@ -74,24 +78,36 @@ void calibrate(int pageSize) {
   current_z = 0;
 }
 
+void reset () {
+  move_x(0);
+  move_z(0);
+  for (int i = 0; i<1000; i++){ //Extra in case it gets stuck
+    OneStepX(true);
+    OneStepZ(true);
+    delay(2);
+  }
+  resetY();
+}
+
 /** Move in x, checks if within drawing space, updates location of the head 
  * 
  */
 void move_x (int target) {
   int dx = target - current_x;
   if (dx < 0) {
-    for (int i = 0; i<dx; i++){
+    for (int i = 0; i<abs(dx); i++){
         OneStepX(true);
         delay(2);
       }
   } else {
-    for (int i = 0; i<dx; i++){
+    for (int i = 0; i<abs(dx); i++){
         OneStepX(false);
         delay(2);
       }
   }
-    current_x = target;
-  }
+  current_x = target;
+  //Serial.println(current_x);
+}
 
 /** Move in z, checks if within drawing space, updates location of the head 
  * 
@@ -99,28 +115,37 @@ void move_x (int target) {
 void move_z (int target) {
   int dz = target - current_z;
   if (dz < 0) {
-    for (int i = 0; i<dz; i++){
+    for (int i = 0; i<abs(dz); i++){
         OneStepZ(true);
         delay(2);
       }
   } else {
-    for (int i = 0; i<dz; i++){
+    for (int i = 0; i<abs(dz); i++){
         OneStepZ(false);
         delay(2);
       }
   }
     current_z = target;
+    //Serial.println(current_z);
   }
 /** First symbol 
  *  
  */
-void drawLine(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawLine(){
+  Serial.println("Drawing line");
+  int paintSize = (3-pageSize)*1000;
+  for (int i = 0; i<500; i++){
+    OneStepX(false);
+    delay(2);
+  }
+  OneStepY();     // start writting
+  
+  for (int i = 0; i<paintSize; i++){
     OneStepX(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<paintSize; i++){
     OneStepX(true);
     delay(2);
   }
@@ -129,21 +154,24 @@ void drawLine(int pageSize){
 /** Second symbol 
  *  
  */
-void drawAngle(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawAngle(){
+  OneStepY();     // start writting
+  Serial.println("Drawing angle");
+  int paintSize = (3-pageSize)*1000;
+  for (int i = 0; i<paintSize; i++){
     OneStepX(false);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<paintSize; i++){
     OneStepZ(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<paintSize; i++){
     OneStepX(true);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<paintSize; i++){
     OneStepZ(true);
     delay(2);
   }
@@ -152,18 +180,21 @@ void drawAngle(int pageSize){
 /** Third symbol 
  *  
  */
-void drawTriangle(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawTriangle(){
+  OneStepY();     // start writting
+  Serial.println("Drawing triangle");
+  int paintSize = (3-pageSize)*1000;
+  for (int i = 0; i<paintSize; i++){
     OneStepX(false);
     OneStepZ(false);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<paintSize; i++){
     OneStepX(false);
     OneStepZ(true);
     delay(2);
   }
-  for (int i = 0; i<pageSize*2000; i++){
+  for (int i = 0; i<paintSize*2; i++){
     OneStepX(true);
     delay(2);
   }
@@ -174,21 +205,21 @@ void drawTriangle(int pageSize){
  * 
  */
 void drawFig(int fig) {
-  OneStepY();     // start writting
-  switch(fig){
+  switch(fig) {
     case 0:
-      drawLine(pageSize);
+      drawLine();
       break;
     case 1:
-      drawAngle(pageSize);
+      drawAngle();
       break;
     case 2:
-      drawTriangle(pageSize);
+      drawTriangle();
       break;
     default:
       OneStepY();     // stop writting (dot)
       break;
   }
+   resetY();
    Serial.println("A");
 }
 
@@ -351,9 +382,9 @@ void OneStepY () {
   }
 
 void resetY () {
-    myservo.write(180);              // tell servo to go to step_number_yition in variable 'step_number_y'
+    myservo.write(0);              // tell servo to go to step_number_yition in variable 'step_number_y'
     delay(15);                       // waits 15ms for the servo to reach the step_number_yition
-    current_y = 1;
+    current_y = 0;
   }
 
 // ============================= Serial Communication =============================
@@ -376,28 +407,39 @@ void analize_command(String command){
     max_x = 12000;
     max_z = 16000;
     pageSize = 0;
+    Serial.println("A");
   } else if (command=="s1") {
     max_x = 12000;
     max_z = 8000;
     pageSize = 1;
+    Serial.println("A");
   }
   else if (command=="s2") {
     max_x = 6000;
     max_z = 8000;
     pageSize = 2;
+    Serial.println("A");
   } else if (command=="c") {
     OneStepY();
     Serial.println("A");
+  } else if (command=="r") {
+    reset();
+    Serial.println("A");
   } else {
-    int symbol = atoi(command.charAt(0));
-    int square = atoi(command.charAt(1));
+    int symbol = command.charAt(0) - '0';
+    int square = command.charAt(1) - '0';
 
     int new_x = get_square_x(square, pageSize);
     int new_z = get_square_z(square, pageSize);
-    
+    //Serial.println(symbol);
+    //Serial.println(square);
     move_x(new_x);
     move_z(new_z);
-    drawFig(symbol);
+    //drawFig(symbol);
+    OneStepY();
+    delay(500);
+    OneStepY();
+    delay(15);
   }
 }
 
