@@ -48,8 +48,11 @@ typedef struct{
     int next_turn;
     int matrix[9];
 
+    int game_over;
+    int game_win;
     int arduino_on;
     arduino_t* arduino;
+
 } game_t;
 
 typedef struct {
@@ -87,4 +90,7 @@ uint8_t send_json(client_t* client, const char* text);
 uint8_t send_error(client_t* client);
 uint8_t set_params(const char* query, server_t* server, int function);
 uint8_t set_game_params(char* key, char* value, server_t* server);
+int check_game_win(server_t* server);
+int check_game_over(server_t* server);
+void init_game(server_t* server);
 #endif

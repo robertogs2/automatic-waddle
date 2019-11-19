@@ -230,20 +230,42 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
     char str[64] = {0};
     int i = 0;
     int index = 0;
+    // Strings the matrix
     for (i = 0; i < 8; i++) index += sprintf(&str[index], "%d,", server->game->matrix[i]);
     sprintf(&str[index], "%d", server->game->matrix[i]);
 
     char buffer[512];
-    printf("Got here %d\n", server->game->turn);
-    // Checking the turn
+    // Gets the username
     char *username;
-    if(server->game->turn == TURN_PLAYER0) username = server->game->username0;
+    if(server->game->turn == TURN_PLAYER0){
+        if((server->game->type == TYPE_USERXUSER && server->game->players == 1)){
+            username = "Not assigned";
+        }
+        else{
+            username = server->game->username0;
+        }
+    }
     else if(server->game->turn == TURN_PLAYER1) username = server->game->username1;
     else username = "PC";
-    sprintf(buffer, "{\"Turn\": \"%s\", \"Matrix\": [%s], \"Username0\":\"%s\", \"Username1\":\"%s\",\"Symbol0\": %d, \"Symbol1\":%d}",
+    // Gets the game state
+
+    if(game->game_over == 0) {
+        int game_win =  check_game_win(server);
+        int game_over = check_game_over(server);
+        int game_done = game_win != -1 || game_over == 1;
+        game->game_over = game_done; // TODO: Check
+        game->game_win = game_win;
+    }
+
+
+    // printf("Game win: %d\n", game_win);
+    // printf("Game over: %d\n", game_over);
+
+    sprintf(buffer, "{\"Turn\": \"%s\", \"Matrix\": [%s], \"Username0\":\"%s\", \"Username1\":\"%s\",\"Symbol0\": %d, \"Symbol1\":%d, \"State\":\"%s\"}",
             username, str,
             server->game->username0, server->game->username1,
-            server->game->symbol0, server->game->symbol1);
+            server->game->symbol0, server->game->symbol1,
+            server->game->game_over ? "GameOver" : "Play");
     printf("%s\n", buffer);
     send_json(client, buffer);
 
@@ -260,8 +282,8 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
         server->game->turn = server->game->next_turn;
         if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC) {
             // TODO: Make movement from PC
-            while(1){
-                int j = rand()%9;
+            while(1) {
+                int j = rand() % 9;
                 if(server->game->matrix[j] == 3) { // TODO Free space
                     server->game->matrix[j] = server->game->symbol1;
                     char to_send[8];
@@ -279,8 +301,8 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
         // Set the next turn now
         // Even though we are now in waiting
         // And maybe the trigger from the call made it already ok, but for first time test
-        if(server->game->turn == TURN_PLAYER1) server->game->next_turn = TURN_PLAYER0;
-        else server->game->next_turn = TURN_PLAYER0;
+        // if(server->game->turn == TURN_PLAYER1) server->game->next_turn = TURN_PLAYER0;
+        // else server->game->next_turn = TURN_PLAYER1;
     } else {
         server->game->turn = TURN_WAITING;
     }
@@ -288,7 +310,6 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
 // Asumes coming move is correct and enabled
 uint8_t make_move(char *key, char *value, server_t *server) {
     if(strncmp(key, "position", 8) == 0) {
-        printf("Setting position");
         int position = atoi(value);
         if(server->game->matrix[position] == 3) { // Not in use
             int symbol = 3;
@@ -304,8 +325,8 @@ uint8_t make_move(char *key, char *value, server_t *server) {
             // TODOTODOTODO: Send to arduino
             char to_send[8];
             sprintf(to_send, "%d%d\n", symbol, position);
-            if(ARDUINO_ON){
-                uint8_t n = arduino_sendstring(server->game->arduino, to_send);   
+            if(ARDUINO_ON) {
+                uint8_t n = arduino_sendstring(server->game->arduino, to_send);
             }
         } else {
             return POSITION_ERROR;
@@ -352,6 +373,7 @@ uint8_t set_params(const char *query, server_t *server, int function) {
 
 uint8_t process_query(client_t *client, server_t *server) {
     char *query = client->buffer;
+    printf("%s\n", query);
     if(strcmp(query, "/dummy") == 0) {
         send_text(client, "Im dummy");
     } else if(strncmp(query, "/setup", 6) == 0) {
@@ -363,11 +385,105 @@ uint8_t process_query(client_t *client, server_t *server) {
     } else if(strncmp(query, "/game", 5) == 0) {
         send_status(client, server);
     } else if(strncmp(query, "/move", 5) == 0) {
-        printf("Recevived a move\n");
         uint8_t ret = set_params(query, server, 1);
         if(ret == POSITION_ERROR) send_json(client, "{\"Status\": \"Position full\"}");
         else send_json(client, "{\"Status\": \"Ok\"}");
+    } else if(strncmp(query, "/restart", 8)==0) {
+        init_game(server);
     } else {
         send_json(client, "{\"Status\": \"Ok\"}");
     }
+}
+
+int check_game_win(server_t *server) {
+    game_t *game = server->game;
+    int *game_matrix = game->matrix;
+
+    int i = 0;
+    int symbol = 0;
+    int retval = -1;
+    for(; i < 3; ++i) { // Check rows
+        symbol = game_matrix[3 * i];
+        if(symbol != 3) {
+            if(game_matrix[3 * i + 1] == symbol && game_matrix[3 * i + 2] == symbol) {
+                retval = i;
+                game_matrix[3 * i] = symbol + 4;
+                game_matrix[3 * i + 1] = symbol + 4;
+                game_matrix[3 * i + 2] = symbol + 4;
+                return retval;
+            }
+        }
+    }
+    i = 0;
+    for(; i < 3; ++i) { // Check columns
+        symbol = game_matrix[i];
+        if(symbol != 3) {
+            if(game_matrix[i + 3] == symbol && game_matrix[i + 6] == symbol) {
+                retval = i + 3;
+                game_matrix[i] = symbol + 4;
+                game_matrix[i + 3] = symbol + 4;
+                game_matrix[i + 6] = symbol + 4;
+                return retval;
+            }
+        }
+    }
+    // Check diagonal 1
+    symbol = game_matrix[0];
+    if(symbol != 3) {
+        if(game_matrix[4] == symbol && game_matrix[8] == symbol) {
+            retval = 6;
+            game_matrix[0] = symbol + 4;
+            game_matrix[4] = symbol + 4;
+            game_matrix[8] = symbol + 4;
+            return retval;
+        }
+    }
+    // Check diagonal 2
+    symbol = game_matrix[2];
+    if(symbol != 3) {
+        if(game_matrix[4] == symbol && game_matrix[6] == symbol) {
+            retval = 7;
+            game_matrix[2] = symbol + 4;
+            game_matrix[4] = symbol + 4;
+            game_matrix[6] = symbol + 4;
+            return retval;
+        }
+    }
+    return retval;
+
+
+}
+
+int check_game_over(server_t *server) {
+    game_t *game = server->game;
+    int *game_matrix = game->matrix;
+    int retval = 1;
+    for(int i = 0; i < 9; ++i) {
+        if(game_matrix[i] == 3) {
+            retval = 0;
+            break;
+        }
+    }
+    return retval;
+}
+
+void init_game(server_t *server) {
+    game_t *game;
+    game = server->game;
+    strcpy(game->username0, "Not assigned");
+    strcpy(game->username1, "Not assigned");
+    game->size = -1;
+    game->type = -1;
+    game->players = 0;
+    game->symbol0 = -1;
+    game->symbol1 = -1;
+    game->game_over = 0;
+    game->game_win = -1;
+    game->turn = TURN_PLAYER0;
+    game->next_turn = TURN_PLAYER1;
+    game->arduino_on = 0;
+    for(int i = 0; i < 9; ++i) game->matrix[i] = 3;
+    arduino_t *arduino = (arduino_t *) malloc(sizeof(arduino_t));
+    arduino_init(arduino, "/dev/arduino0");
+    game->arduino = arduino;
 }
