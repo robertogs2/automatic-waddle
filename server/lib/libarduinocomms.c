@@ -17,7 +17,7 @@ int arduino_init(arduino_t *interface, const char *filename) {
     int file;
     struct termios toptions;
 
-    file = open(interface->filename, O_RDWR | O_NOCTTY);
+    file = open(interface->filename, O_RDWR | O_NOCTTY | O_NDELAY);
     sleep(1);
     /* get current serial port settings */
     tcgetattr(file, &toptions);
@@ -32,8 +32,11 @@ int arduino_init(arduino_t *interface, const char *filename) {
     /* Canonical mode */
     toptions.c_lflag &= ~ICANON;
     /* commit the serial port settings */
-    toptions.c_cc[VMIN]=0;
-    toptions.c_cc[VTIME]=0.001;
+    toptions.c_cc[VMIN] = 0;
+    toptions.c_cc[VTIME] = 1;
+    toptions.c_oflag = 0;
+
+    toptions.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
     tcsetattr(file, TCSANOW, &toptions);
 
     printf("Opening arduino\n");

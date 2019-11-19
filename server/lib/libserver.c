@@ -171,7 +171,10 @@ uint8_t set_game_params(char *key, char *value, server_t *server) {
             strcpy(server->game->username1, value);
         }
     } else if(strcmp(key, "size") == 0) {
-        server->game->size = atoi(value);
+        // TODO: Send it to arduino, for it to know the start
+        if(server->game->size == -1) {
+            server->game->size = atoi(value);
+        }
     } else if(strcmp(key, "type") == 0) {
         int type = atoi(value);
         if(server->game->players == 0) {
@@ -273,8 +276,7 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
         uint8_t n = arduino_readuntil(server->game->arduino, buffer, ARDUINO_ACK);
         if(n > 0 && buffer[n - 1] == ARDUINO_ACK) {
             arduino_on = 0;
-        }
-        else{
+        } else {
             arduino_on = 1;
         }
     }
@@ -308,8 +310,7 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
                     uint8_t n = arduino_sendstring(server->game->arduino, to_send);
                 }
             }
-        }
-        else if(game->game_over == 1 && game->turn == TURN_WAITING){ // Set to not waiting
+        } else if(game->game_over == 1 && game->turn == TURN_WAITING) { // Set to not waiting
             printf("Game over and not sending it to arduino\n");
             game->turn = 69420; // random number not turn waiting
         }
@@ -493,6 +494,6 @@ void init_game(server_t *server) {
     game->arduino_on = 0;
     for(int i = 0; i < 9; ++i) game->matrix[i] = 3;
     arduino_t *arduino = (arduino_t *) malloc(sizeof(arduino_t));
-    arduino_init(arduino, "/dev/arduino0");
+    arduino_init(arduino, "/dev/arduino3");
     game->arduino = arduino;
 }
