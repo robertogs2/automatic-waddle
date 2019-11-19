@@ -272,6 +272,9 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
     if(ARDUINO_ON) {
         uint8_t n = arduino_readuntil(server->game->arduino, buffer, ARDUINO_ACK);
         if(n > 0 && buffer[n - 1] == ARDUINO_ACK) {
+            arduino_on = 0;
+        }
+        else{
             arduino_on = 1;
         }
     }
