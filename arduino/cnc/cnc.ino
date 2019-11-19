@@ -46,6 +46,8 @@ void setup() {
   Serial.begin(9600);   // Open serial port (9600 bauds).
   Serial.flush();       // Clear receive buffer.
   //printHelp();          // Print the command list.
+
+  OneStepY();
 }
 
 void analize_command(String command);
@@ -84,7 +86,8 @@ void split(String input, char delimiter, String* results){
 }
 
 void analize_command(String command){
-  if (command=="calibrate") {
+  if (command=="c") {
+    OneStepY();
     Serial.println("Zero setted");
   } else {
     String split_string [3];
