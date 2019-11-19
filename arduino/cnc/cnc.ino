@@ -6,7 +6,7 @@
 #define STEPPER_PIN_X3 11
 #define STEPPER_PIN_X4 12
 int current_x = 0;
-int max_x = 10000;
+int max_x = 12000;
 
 // Z axys - bridge
 #define STEPPER_PIN_Z1 5
@@ -14,7 +14,7 @@ int max_x = 10000;
 #define STEPPER_PIN_Z3 7
 #define STEPPER_PIN_Z4 8
 int current_z = 0;
-int max_z = 10000;
+int max_z = 16000;
 
 // Y axys - pilot
 #define SERVO_PIN_Y1 3
@@ -27,7 +27,9 @@ int step_number_y = 0;
 int step_number_z = 0;
 
 // UART communication
-char rxChar= 0;         // RXcHAR holds the received command.
+char rxChar = 0;         // RXcHAR holds the received command.
+String command;
+int pageSize = 0;
 
 // ============================= Default Arduino Functions =============================
 void setup() {
@@ -43,14 +45,68 @@ void setup() {
   
   Serial.begin(9600);   // Open serial port (9600 bauds).
   Serial.flush();       // Clear receive buffer.
-  printHelp();          // Print the command list.
+  //printHelp();          // Print the command list.
 }
 
-void loop(){
-  serial();
+void analize_command(String command);
+
+void loop() {
+
+ // put your main code here, to run repeatedly:
+  while(true){
+    if(Serial.available()){
+      char c = Serial.read();
+   if(c == '\n' || c == '\r') break;
+   command += c;
+    }
+ }
+ if(command.length() > 0){
+   analize_command(command);
+   //Serial.println(command);
+ }
+ command = "";
 }
+
 
 // ============================= Serial Communication =============================
+void split(String input, char delimiter, String* results){
+ int t = 0;
+ int r = 0;
+ int i = 0;
+ for (i=0; i < input.length(); i++){
+   if(input.charAt(i) == delimiter && input.charAt(i) != '\n') {
+     results[t] = input.substring(r, i);
+     r=(i+1);
+     t++;
+   }
+ } 
+ results[t] = input.substring(r, i);
+}
+
+void analize_command(String command){
+  if (command=="calibrate") {
+    Serial.println("Zero setted");
+  } else {
+    String split_string [3];
+    split(command, ',', split_string);
+
+    Serial.println("Splitting");
+  
+    for (int i = 0; i<3; i++) {
+      //Serial.println(split_string[i]);
+      String op[2];
+      split(split_string[i], ':', op);
+  
+      if (op[0]=="x") {
+        move_x(op[1].toInt());
+      } else if (op[0]=="z") {
+        move_z(op[1].toInt());
+      } else if (op[0]=="s") {
+        OneStepY();
+      }
+    }
+  }
+}
 
 /** Help function that lists the commands available through serial().
  *  Set the line ending to "No line ending"
@@ -64,76 +120,6 @@ void printHelp(void){
   Serial.println(" s -> Move z negative");  
   Serial.println(" e -> Toggle y"); 
   Serial.println(" q -> Diagonal away from origin"); 
-  }
-
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- * 
- */
-void serial () {
-  int n = 2000;
-  if (Serial.available() >0){          // Check receive buffer.
-    rxChar = Serial.read();            // Save character received. 
-    Serial.flush();                    // Clear receive buffer.
-  
-  switch (rxChar) {
-    case 'w':
-    case 'W':
-      for (int i = 0; i<n; i++){
-        OneStepX(false);
-        delay(2);
-      }
-      Serial.println("x++");
-      break;
-      
-    case 'a':
-    case 'A':
-      for (int i = 0; i<n; i++){
-        OneStepZ(true);
-        delay(2);
-      }
-      Serial.println("z++");
-      break;
-
-    case 's':
-    case 'S':                          // If received  's' or 'S':
-      for (int i = 0; i<n; i++){
-        OneStepX(true);
-        delay(2);
-      }
-      Serial.println("x--");
-      break;
-
-    case 'd':
-    case 'D':                          // If received 'd' or 'D':
-      for (int i = 0; i<n; i++){
-        OneStepZ(false);
-        delay(2);
-      }
-      Serial.println("z--");
-      break;
-
-    case 'e':
-    case 'E':                          // If received 'e' or 'E':
-      OneStepY();
-      delay(2);
-      Serial.println("¬y");
-      break;
-
-    case 'q':
-    case 'Q':                          // If received 'e' or 'E':
-    for (int i = 0; i<n; i++){
-      OneStepX(false);
-      OneStepZ(false);
-      delay(2);
-    }
-      Serial.println("q--");
-      break;
-
-    default:
-      Serial.println("Input is not a command!");
-    }
-  }
 }
 
 /** Serial communication with the cnc machine for manual control.
@@ -161,7 +147,7 @@ void driver () {
 
     case 'd':
     case 'D':                          // If received  's' or 'S':
-      drawFig(0);
+      drawFig(0, 0);
       Serial.println("P");
       break;
 
@@ -191,45 +177,23 @@ void calibrate(int pageSize) {
  * 
  */
 void move_x (int target) {
-  int dx = current_x-target;
-  bool dir = false;
-  if (dx < 0) {
-    dir = true;
-  }
-  int target = current_x+dx;
-  if (target<0 & target>max_x) {
-    Serial.println("Ilegal movement");
-  } else {
-    current_x += dx;
-    for (int i = 0; i<abs(dx); i++){
-      OneStepX(dir);
+  for (int i = 0; i<target; i++){
+      OneStepX(false);
       delay(2);
     }
     Serial.println(current_x);
   }
-}
 
 /** Move in z, checks if within drawing space, updates location of the head 
  * 
  */
 void move_z (int target) {
-  int dz = current_z-target;
-  bool dir = false;
-  if (dz < 0) {
-    dir = true;
-  }
-  int target = current_z+dz;
-  if (target<0 & target>max_z) {
-    Serial.println("Ilegal movement");
-  } else {
-    current_z += dz;
-    for (int i = 0; i<abs(dz); i++){
-      OneStepZ(dir);
+  for (int i = 0; i<target; i++){
+      OneStepZ(false);
       delay(2);
     }
     Serial.println(current_z);
   }
-}
 
 /** First symbol 
  *  
@@ -295,7 +259,7 @@ void drawTriangle(int pageSize){
  */
 void drawFig(int fig, int pageSize) {
   OneStepY();     // start writting
-  switch(fig):
+  switch(fig){
     case 0:
       drawLine(pageSize);
       break;
@@ -307,13 +271,11 @@ void drawFig(int fig, int pageSize) {
       break;
     default:
       OneStepY();     // stop writting (dot)
-      break; 
+      break;
+  }
 }
 
 // ============================= Engine Functions =============================
-
-/** Demo function that moves both X and Z axys at the same time
-*/
 void demo() {
   for (int i = 0; i<4000; i++){
     OneStepX(true);
