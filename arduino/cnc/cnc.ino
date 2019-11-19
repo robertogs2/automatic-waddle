@@ -379,9 +379,11 @@ void analize_command(String command){
     max_x = 6000;
     max_z = 8000;
     pageSize = 2;
+  } else if (command=="c") {
+    OneStepY();
   } else {
-    int square = atoi(command.charAt(0));
-    int symbol = atoi(command.charAt(1));
+    int symbol = atoi(command.charAt(0));
+    int square = atoi(command.charAt(1));
 
     int new_x = get_square_x(square, pageSize);
     int new_z = get_square_z(square, pageSize);
@@ -460,8 +462,6 @@ void setup() {
 
   OneStepY();
 }
-
-void analize_command(String command);
 
 void loop() {
 
