@@ -39,20 +39,20 @@ int pageSize = 0;
 int square_x [27] = { 2000, 2000, 1500,
                       2000, 2000, 1500,
                       2000, 2000, 1500,
-                      5500, 4000, 3000,
-                      5500, 4000, 3000,
-                      5500, 4000, 3000,
-                      9000, 6500, 4500,
-                      9000, 6500, 4500,
-                      9000, 6500, 4500};
+                      5500, 4500, 3000,
+                      5500, 4500, 3000,
+                      5500, 4500, 3000,
+                      9500, 6500, 4500,
+                      9500, 6500, 4500,
+                      9500, 6500, 4500};
 
-int square_z [27] = {10500, 8500, 6000,
+int square_z [27] = {10000, 8500, 6000,
                       7000, 6500, 4500,
                       3000, 4000, 3000,
-                     10500, 8500, 6000, 
+                     10000, 8500, 6000, 
                       7000, 6500, 4500,
                       3000, 4000, 3000,
-                     10500, 8500, 6000,
+                     10000, 8500, 6000,
                       7000, 6500, 4500,
                       3000, 4000, 3000};
 
@@ -84,7 +84,7 @@ void calibrate(int pageSize) {
 void reset () {
   move_x(0);
   move_z(0);
-  for (int i = 0; i<1000; i++){ //Extra in case it gets stuck
+  for (int i = 0; i<2000; i++){ //Extra in case it gets stuck
     OneStepX(true);
     OneStepZ(true);
     delay(2);
@@ -224,7 +224,7 @@ void drawStraight (bool dir, int lineSize) {
       delay(2);
     }
     OneStepY();     // start writting
-    for (int i = 0; i<lineSize*5; i++){
+    for (int i = 0; i<lineSize*4; i++){
       OneStepX(false);
       delay(2);
     }
@@ -235,7 +235,7 @@ void drawStraight (bool dir, int lineSize) {
       delay(2);
     }
     OneStepY();     // start writting
-    for (int i = 0; i<lineSize*5; i++){
+    for (int i = 0; i<lineSize*4; i++){
       OneStepZ(false);
       delay(2);
     }
@@ -252,14 +252,18 @@ void drawWinner(int winLine){
     new_z = get_square_z(0, pageSize);
     move_x(new_x);
     move_z(new_z);
+    current_x = new_x;
+    current_z = new_z;
     for (int i = 0; i<target; i++){
       OneStepZ(false);
       delay(2);
     }
     OneStepY();     // start writting
-    for (int i = 0; i<target*5; i++){
+    for (int i = 0; i<target*4; i++){
       OneStepX(false);
       OneStepZ(true);
+      current_x += target;
+      current_z += target;
       delay(2);
     }
     OneStepY();     // stop writting
@@ -268,11 +272,14 @@ void drawWinner(int winLine){
       new_z = get_square_z(2, pageSize);
       move_x(new_x);
       move_z(new_z);    
-      
+      current_x = new_x;
+      current_z = new_z;
       OneStepY();     // start writting
-      for (int i = 0; i<target*5; i++){
+      for (int i = 0; i<target*4; i++){
         OneStepX(false);
         OneStepZ(false);
+        current_x += target;
+        current_z += target;
         delay(2);
       }
       OneStepY();     // stop writting
@@ -283,37 +290,57 @@ void drawWinner(int winLine){
           new_z = get_square_z(2, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;
           drawStraight(0, target);
+          break;
         case 1: 
           new_x = get_square_x(5, pageSize);
           new_z = get_square_z(5, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
           drawStraight(0, target);
+          break;
         case 2: 
           new_x = get_square_x(8, pageSize);
           new_z = get_square_z(8, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
           drawStraight(0, target);
+          break;
         case 3: 
           new_x = get_square_x(0, pageSize);
           new_z = get_square_z(0, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
           drawStraight(1, target);
+          break;
         case 4: 
           new_x = get_square_x(1, pageSize);
           new_z = get_square_z(1, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
           drawStraight(1, target);
+          break;
         case 5: 
           new_x = get_square_x(2, pageSize);
           new_z = get_square_z(2, pageSize);
           move_x(new_x);
           move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
           drawStraight(1, target);
+          break;
+        default:
+          break;
       }
     }
   }
@@ -543,7 +570,8 @@ void analize_command(String command){
   } else if (command=="r") {
     reset();
     //Serial.println("A");
-  } else if (command.charAt(0)=="w"){
+  } else if (command.charAt(0)=='w'){
+    //Serial.println("A");
     int winLine = command.charAt(1) - '0';
     if (winLine >= 0 && winLine <= 7) {
       drawWinner(winLine);
