@@ -67,6 +67,7 @@ int get_square_z(int row, int col){
 // ============================= Forward Declarations =============================
 void resetY ();
 void OneStepX(bool dir);
+void OneStepY();
 void OneStepZ(bool dir);
 
 // ============================= Smart Movement Functions =============================
@@ -145,7 +146,7 @@ int getLineSize () {
  *  
  */
 void drawLine(){
-  Serial.println("Drawing line");
+  //Serial.println("Drawing line");
   int lineSize = getLineSize();
   for (int i = 0; i<lineSize-750; i++){  // Center the line
     OneStepZ(false);
@@ -172,13 +173,13 @@ void drawLine(){
  */
 void drawAngle(){
   OneStepY();     // start writting
-  Serial.println("Drawing angle");
+  //Serial.println("Drawing angle");
   int lineSize = getLineSize();
   for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     delay(2);
   }
-  for (int i = 0; i<lineSize; i++){
+  for (int i = 0; i<lineSize-500; i++){
     OneStepZ(false);
     delay(2);
   }
@@ -187,7 +188,7 @@ void drawAngle(){
     OneStepX(true);
     delay(2);
   }
-  for (int i = 0; i<lineSize; i++){
+  for (int i = 0; i<lineSize-500; i++){
     OneStepZ(true);
     delay(2);
   }
@@ -198,7 +199,7 @@ void drawAngle(){
  */
 void drawTriangle(){
   OneStepY();     // start writting
-  Serial.println("Drawing triangle");
+  //Serial.println("Drawing triangle");
   int lineSize = getLineSize();
   for (int i = 0; i<lineSize; i++){
     OneStepX(false);
@@ -215,6 +216,108 @@ void drawTriangle(){
   }
   OneStepY();     // stop writting
 }
+
+void drawStraight (bool dir, int lineSize) {
+  if (dir) {  // vertical (x)
+    for (int i = 0; i<lineSize-750; i++){  // Center the line
+      OneStepZ(false);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<lineSize*5; i++){
+      OneStepX(false);
+      delay(2);
+    }
+    OneStepY();     // stop writting
+  } else { // horizontal (z)
+    for (int i = 0; i<lineSize-750; i++){  // Center the line
+      OneStepX(false);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<lineSize*5; i++){
+      OneStepZ(false);
+      delay(2);
+    }
+    OneStepY();     // stop writting
+  }
+}
+
+void drawWinner(int winLine){
+  int target = getLineSize();
+  int new_x = 0;
+  int new_z = 0;
+  if (winLine == 6) {    // diagonal
+    new_x = get_square_x(0, pageSize);
+    new_z = get_square_z(0, pageSize);
+    move_x(new_x);
+    move_z(new_z);
+    for (int i = 0; i<target; i++){
+      OneStepZ(true);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<target*5; i++){
+      OneStepX(false);
+      OneStepZ(true);
+      delay(2);
+    }
+    OneStepY();     // start writting
+  } else if (winLine == 7) {    // diagonal
+      new_x = get_square_x(0, pageSize);
+      new_z = get_square_z(0, pageSize);
+      move_x(new_x);
+      move_z(new_z);    
+      
+      OneStepY();     // start writting
+      for (int i = 0; i<target*5; i++){
+        OneStepX(false);
+        OneStepZ(false);
+        delay(2);
+      }
+      OneStepY();     // stop writting
+    } else {    // straights
+      switch (winLine) {
+        case 0: 
+          new_x = get_square_x(8, pageSize);
+          new_z = get_square_z(8, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(0, target);
+        case 1: 
+          new_x = get_square_x(5, pageSize);
+          new_z = get_square_z(5, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(0, target);
+        case 2: 
+          new_x = get_square_x(2, pageSize);
+          new_z = get_square_z(2, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(0, target);
+        case 3: 
+          new_x = get_square_x(0, pageSize);
+          new_z = get_square_z(0, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(1, target);
+        case 4: 
+          new_x = get_square_x(1, pageSize);
+          new_z = get_square_z(1, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(1, target);
+        case 5: 
+          new_x = get_square_x(2, pageSize);
+          new_z = get_square_z(2, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          drawStraight(1, target);
+      }
+    }
+  }
+
 
 /** Choose a figure to draw
  * 
@@ -235,7 +338,7 @@ void drawFig(int fig) {
       break;
   }
    resetY();
-   Serial.println("A");
+   //Serial.println("A");
 }
 
 // ============================= Engine Functions =============================
@@ -422,24 +525,28 @@ void analize_command(String command){
     max_x = 12000;
     max_z = 16000;
     pageSize = 0;
-    Serial.println("A");
+    //Serial.println("A");
   } else if (command=="s1") {
     max_x = 12000;
     max_z = 8000;
     pageSize = 1;
-    Serial.println("A");
+    //Serial.println("A");
   }
   else if (command=="s2") {
     max_x = 6000;
     max_z = 8000;
     pageSize = 2;
-    Serial.println("A");
+    //Serial.println("A");
   } else if (command=="c") {
     OneStepY();
-    Serial.println("A");
+    //Serial.println("A");
   } else if (command=="r") {
     reset();
-    Serial.println("A");
+    //Serial.println("A");
+  } else if (command.charAt(0)=="w"){
+    int winLine = command.charAt(1) - '0';
+    drawWinner(winLine);
+    //Serial.println("A");
   } else {
     int symbol = command.charAt(0) - '0';
     int square = command.charAt(1) - '0';
@@ -457,21 +564,8 @@ void analize_command(String command){
     OneStepY();
     delay(15);
     */
+    Serial.println("A");
   }
-}
-
-/** Help function that lists the commands available through serial().
- *  Set the line ending to "No line ending"
- * 
- */
-void printHelp(void){
-  Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x step_number_yitive");
-  Serial.println(" a -> Move z step_number_yitive");
-  Serial.println(" d -> Move x negative");
-  Serial.println(" s -> Move z negative");  
-  Serial.println(" e -> Toggle y"); 
-  Serial.println(" q -> Diagonal away from origin"); 
 }
 
   // ============================= Default Arduino Functions =============================
