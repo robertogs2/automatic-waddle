@@ -51,6 +51,7 @@ typedef struct{
     int game_over;
     int game_win;
     int arduino_on;
+    int arduino_first;
     arduino_t* arduino;
 
 } game_t;

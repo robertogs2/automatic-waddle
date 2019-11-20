@@ -607,7 +607,6 @@ void setup() {
   pinMode(STEPPER_PIN_Z3, OUTPUT);
   pinMode(STEPPER_PIN_Z4, OUTPUT);
   myservo.attach(SERVO_PIN_Y1);
-  
   Serial.begin(9600);   // Open serial port (9600 bauds).
   Serial.flush();       // Clear receive buffer.
   //printHelp();        // Print the command list.
@@ -616,7 +615,6 @@ void setup() {
 }
 
 void loop() {
-
  // put your main code here, to run repeatedly:
   while(true){
     if(Serial.available()){
