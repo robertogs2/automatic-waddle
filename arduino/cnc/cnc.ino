@@ -351,7 +351,7 @@ void OneStepY () {
   }
 
 void resetY () {
-    myservo.write(180);              // tell servo to go to step_number_yition in variable 'step_number_y'
+    myservo.write(0);              // tell servo to go to step_number_yition in variable 'step_number_y'
     delay(15);                       // waits 15ms for the servo to reach the step_number_yition
     current_y = 1;
   }
@@ -426,7 +426,6 @@ void setup() {
   pinMode(STEPPER_PIN_Z3, OUTPUT);
   pinMode(STEPPER_PIN_Z4, OUTPUT);
   myservo.attach(SERVO_PIN_Y1);
-  
   Serial.begin(9600);   // Open serial port (9600 bauds).
   Serial.flush();       // Clear receive buffer.
   //printHelp();        // Print the command list.
@@ -435,7 +434,6 @@ void setup() {
 }
 
 void loop() {
-
  // put your main code here, to run repeatedly:
   while(true){
     if(Serial.available()){

@@ -174,6 +174,11 @@ uint8_t set_game_params(char *key, char *value, server_t *server) {
         // TODO: Send it to arduino, for it to know the start
         if(server->game->size == -1) {
             server->game->size = atoi(value);
+            char to_send[8];
+            sprintf(to_send, "s%d\n",server->game->size);
+            if(ARDUINO_ON) {
+                uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+            }
         }
     } else if(strcmp(key, "type") == 0) {
         int type = atoi(value);
@@ -247,7 +252,7 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
             username = server->game->username0;
         }
     } else if(server->game->turn == TURN_PLAYER1) username = server->game->username1;
-    else username = "PC";
+    else username = "Waiting";
     // Gets the game state
 
     if(game->game_over == 0) {
@@ -267,33 +272,43 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
             server->game->username0, server->game->username1,
             server->game->symbol0, server->game->symbol1,
             server->game->game_over ? "GameOver" : "Play");
-    printf("%s\n", buffer);
+    //printf("%s\n", buffer);
     send_json(client, buffer);
 
     // Read from arduino to see if it already finished
     int arduino_on = 0; // TODOTODOTODO Should read from arduino
-    if(ARDUINO_ON) {
-        uint8_t n = arduino_readuntil(server->game->arduino, buffer, ARDUINO_ACK);
-        if(n > 0 && buffer[n - 1] == ARDUINO_ACK) {
-            arduino_on = 0;
-        } else {
-            arduino_on = 1;
-        }
-    }
+    // if(ARDUINO_ON) {
+    //     if(game->arduino_on == 1){ // Check if it finished
+    //         uint8_t n = arduino_readuntil(server->game->arduino, buffer, ARDUINO_ACK);
+    //         if(n > 0 && buffer[n - 1] == ARDUINO_ACK) {
+    //             printf("Read %d bytes\n", n);
+    //             arduino_on = 0;
+    //             game->arduino_on = 0;
+    //         } else {
+    //             arduino_on = 1; // Not finished
+    //         }
+    //     }
+    //     else{
+    //         arduino_on = 0;
+    //     }
+    // }
 
-    if(!arduino_on) { // Arduino has finished, signal should only be sent when the algorithm is over
+    if(!arduino_on && game->arduino_first == 0) { // Arduino has finished, signal should only be sent when the algorithm is over
+        //printf("Entering aarduino\n");
         if(game->game_over == 0) { // Normal logic
             server->game->turn = server->game->next_turn;
             if(server->game->turn == TURN_PLAYER1 && server->game->type == TYPE_USERXPC) {
-                // TODO: Make movement from PC
+                // Make movement from PC
                 while(1) {
                     int j = rand() % 9;
-                    if(server->game->matrix[j] == 3) { // TODO Free space
+                    if(server->game->matrix[j] == 3) { // Free space
                         server->game->matrix[j] = server->game->symbol1;
                         char to_send[8];
                         sprintf(to_send, "%d%d\n", server->game->symbol1, j);
                         if(ARDUINO_ON) {
                             uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+                            game->arduino_on = 1; // Arduino is now on
+                            printf("Sending %s\n", to_send);
                         }
                         break;
                     }
@@ -305,16 +320,30 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
             printf("Game over and sending it to arduino\n");
             if(game->game_win != -1) { // Win type
                 char to_send[8];
-                sprintf(to_send, "%d%d\n", 4, game->game_win);
+                sprintf(to_send, "w%d\n", game->game_win);
                 if(ARDUINO_ON) {
                     uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+                    game->arduino_on = 1;
                 }
+                game->game_over = 2;
             }
         } else if(game->game_over == 1 && game->turn == TURN_WAITING) { // Set to not waiting
             printf("Game over and not sending it to arduino\n");
             game->turn = 69420; // random number not turn waiting
         }
-    } else {
+        else{
+            printf("Game done!\n");
+            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
+            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
+            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
+            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
+            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
+            init_game(server);
+        }
+    }
+    else if(game->arduino_first == 1) {
+        server->game->turn = server->game->turn;
+    }else {
         server->game->turn = TURN_WAITING;
     }
 }
@@ -333,11 +362,14 @@ uint8_t make_move(char *key, char *value, server_t *server) {
             }
             server->game->matrix[position] = symbol;
             server->game->turn = TURN_WAITING;
+            server->game->arduino_first = 0;
             // TODOTODOTODO: Send to arduino
             char to_send[8];
             sprintf(to_send, "%d%d\n", symbol, position);
             if(ARDUINO_ON) {
                 uint8_t n = arduino_sendstring(server->game->arduino, to_send);
+                printf("Sending %s\n", to_send);
+                server->game->arduino_on = 1;
             }
         } else {
             return POSITION_ERROR;
@@ -492,8 +524,6 @@ void init_game(server_t *server) {
     game->turn = TURN_PLAYER0;
     game->next_turn = TURN_PLAYER1;
     game->arduino_on = 0;
+    game->arduino_first = 1;
     for(int i = 0; i < 9; ++i) game->matrix[i] = 3;
-    arduino_t *arduino = (arduino_t *) malloc(sizeof(arduino_t));
-    arduino_init(arduino, "/dev/arduino3");
-    game->arduino = arduino;
 }
