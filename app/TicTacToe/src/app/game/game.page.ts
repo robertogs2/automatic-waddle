@@ -3,6 +3,9 @@ import { AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { ConnectionService } from '../connection.service';
 import {HttpClient, HttpParams} from '@angular/common/http';
+import {Media} from '@ionic-native/media/ngx';
+
+
 @Component({
   selector: 'app-game',
   templateUrl: './game.page.html',
@@ -23,6 +26,7 @@ export class GamePage implements OnInit {
   turn_username = "";
   game_state = "Play";
   gameover_text = "";
+  music_file: any;
 
   id : any;
   dataObject : any;
@@ -31,7 +35,13 @@ export class GamePage implements OnInit {
     private alertCtrl: AlertController,
     private router: Router,
     private connectionServices: ConnectionService,
-    public http: HttpClient) {
+    public http: HttpClient,
+    public media: Media) {
+    
+    console.log("Creating");  
+    this.music_file = this.media.create("/android_asset/public/assets/music.mp3"); 
+    console.log("Playing");  
+    this.music_file.play();
 
     this.id = setInterval(() => {
       this.http.get('http://' + this.connectionServices.getIP() + ':' + 
@@ -43,17 +53,17 @@ export class GamePage implements OnInit {
       this.turn_username = this.dataObject['Turn'];
       this.player_1 = "Player 1: " + this.dataObject['Username0'] + "\t";
       this.player_2 = "Player 2: " + this.dataObject['Username1'] + "\t";
-      this.player_1_img = "assets/" + this.dataObject['Symbol0'] + ".png";
-      this.player_2_img = "assets/" + this.dataObject['Symbol1'] + ".png";
+      this.player_1_img = "assets/" + this.dataObject['Symbol0'] + "_v2.png";
+      this.player_2_img = "assets/" + this.dataObject['Symbol1'] + "_v2.png";
       this.game_state = this.dataObject["State"];
 
       for(var i = 0; i < 9; i++){
         if(this.grid_busy[i] < 4){
-          this.grid_images[i] = "assets/" + this.grid_busy[i] + ".png";
+          this.grid_images[i] = "assets/" + this.grid_busy[i] + "_v2.png";
         }
         else{
           //someone won
-          this.grid_images[i] = "assets/" + this.grid_busy[i] + "_won.png";
+          this.grid_images[i] = "assets/" + this.grid_busy[i] + "_v2_won.png";
         }
       }
       
@@ -93,6 +103,7 @@ export class GamePage implements OnInit {
                                                     this.connectionServices.getPort() + '/restart').subscribe((data:any) => {
                                                     console.log(data);
                                                     });
+                                                    this.music_file.stop();
                                                     this.router.navigate(['/setup']); 
                                                   }
                   },
@@ -113,6 +124,7 @@ export class GamePage implements OnInit {
                                               this.connectionServices.getPort() + '/restart').subscribe((data:any) => {
                                               console.log(data);
                                               });
+                                              this.music_file.stop();
                                               this.router.navigate(['/setup']); 
                                             }
                 }, 
