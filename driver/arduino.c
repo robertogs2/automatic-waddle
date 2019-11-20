@@ -1,3 +1,30 @@
+/*
+ * This is an implementation of a tty driver for a USB acm moden device in
+ * linux, used for a serial communication with an Arduino.
+ * Anything of this driver is made from zero, all functions are
+ * already implemented in the linux kernel and are just reduced or deleted
+ * for the usage purposes.
+ * The original driver had the following terms
+ * SPDX-License-Identifier: GPL-2.0+
+ *
+ * Copyright (c) 1999 Armin Fuerst  <fuerst@in.tum.de>
+ * Copyright (c) 1999 Pavel Machek  <pavel@ucw.cz>
+ * Copyright (c) 1999 Johannes Erdfelt  <johannes@erdfelt.com>
+ * Copyright (c) 2000 Vojtech Pavlik    <vojtech@suse.cz>
+ * Copyright (c) 2004 Oliver Neukum <oliver@neukum.name>
+ * Copyright (c) 2005 David Kubicek <dave@awk.cz>
+ * Copyright (c) 2011 Johan Hovold  <jhovold@gmail.com>
+ *
+ * USB Abstract Control Model driver for USB modems and ISDN adapters
+ *
+ * Sponsored by SuSE
+ * 
+ * The reduction is made out of a real driver found at :
+ * https://elixir.bootlin.com/linux/latest/source/drivers/usb/class/cdc-acm.c
+ * or at Linus Torvalds github repository at:
+ * https://github.com/torvalds/linux/blob/master/drivers/usb/class/cdc-acm.c
+ */
+
 #undef DEBUG
 #undef VERBOSE_DEBUG
 
