@@ -229,7 +229,7 @@ void drawStraight (bool dir, int lineSize) {
       delay(2);
     }
     OneStepY();     // stop writting
-  } else { // horizontal (z)
+  } else { // horizontal (dir == 0, z)
     for (int i = 0; i<lineSize-750; i++){  // Center the line
       OneStepX(false);
       delay(2);
@@ -253,7 +253,7 @@ void drawWinner(int winLine){
     move_x(new_x);
     move_z(new_z);
     for (int i = 0; i<target; i++){
-      OneStepZ(true);
+      OneStepZ(false);
       delay(2);
     }
     OneStepY();     // start writting
@@ -262,10 +262,10 @@ void drawWinner(int winLine){
       OneStepZ(true);
       delay(2);
     }
-    OneStepY();     // start writting
+    OneStepY();     // stop writting
   } else if (winLine == 7) {    // diagonal
-      new_x = get_square_x(0, pageSize);
-      new_z = get_square_z(0, pageSize);
+      new_x = get_square_x(2, pageSize);
+      new_z = get_square_z(2, pageSize);
       move_x(new_x);
       move_z(new_z);    
       
@@ -279,8 +279,8 @@ void drawWinner(int winLine){
     } else {    // straights
       switch (winLine) {
         case 0: 
-          new_x = get_square_x(8, pageSize);
-          new_z = get_square_z(8, pageSize);
+          new_x = get_square_x(2, pageSize);
+          new_z = get_square_z(2, pageSize);
           move_x(new_x);
           move_z(new_z);
           drawStraight(0, target);
@@ -291,8 +291,8 @@ void drawWinner(int winLine){
           move_z(new_z);
           drawStraight(0, target);
         case 2: 
-          new_x = get_square_x(2, pageSize);
-          new_z = get_square_z(2, pageSize);
+          new_x = get_square_x(8, pageSize);
+          new_z = get_square_z(8, pageSize);
           move_x(new_x);
           move_z(new_z);
           drawStraight(0, target);
@@ -545,26 +545,26 @@ void analize_command(String command){
     //Serial.println("A");
   } else if (command.charAt(0)=="w"){
     int winLine = command.charAt(1) - '0';
-    drawWinner(winLine);
-    //Serial.println("A");
+    if (winLine >= 0 && winLine <= 7) {
+      drawWinner(winLine);
+      //Serial.println("A");
+    }
   } else {
     int symbol = command.charAt(0) - '0';
     int square = command.charAt(1) - '0';
 
-    int new_x = get_square_x(square, pageSize);
-    int new_z = get_square_z(square, pageSize);
-    //Serial.println(symbol);
-    //Serial.println(square);
-    move_x(new_x);
-    move_z(new_z);
-    drawFig(symbol);
-    /*
-    OneStepY();
-    delay(2500);
-    OneStepY();
-    delay(15);
-    */
-    Serial.println("A");
+    if (symbol >= 0 && symbol <= 2) {
+      if (square >= 0 && square <= 8) {
+      int new_x = get_square_x(square, pageSize);
+      int new_z = get_square_z(square, pageSize);
+      //Serial.println(symbol);
+      //Serial.println(square);
+      move_x(new_x);
+      move_z(new_z);
+      drawFig(symbol);
+      Serial.println("A");
+      }
+    }
   }
 }
 
@@ -598,6 +598,7 @@ void loop() {
     }
  }
  if(command.length() > 0){
+  Serial.flush();
    analize_command(command);
    //Serial.println(command);
  }
