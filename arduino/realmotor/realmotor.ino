@@ -26,10 +26,22 @@ int step_number_x = 0;
 int step_number_y = 0;
 int step_number_z = 0;
 
+
+
 // UART communication
 char rxChar= 0;         // RXcHAR holds the received command.
 
-// ============================= Default Arduino Functions =============================
+//=== function to print the command list:  ===========================
+void printHelp(void){
+  Serial.println("---- Command list: ----");
+  Serial.println(" w -> Move x step_number_yitive");
+  Serial.println(" a -> Move z step_number_yitive");
+  Serial.println(" d -> Move x negative");
+  Serial.println(" s -> Move z negative");  
+  Serial.println(" q, e, z, c -> Move diagonally");
+  Serial.println(" f -> Toggle y");  
+  }
+
 void setup() {
   pinMode(STEPPER_PIN_X1, OUTPUT);
   pinMode(STEPPER_PIN_X2, OUTPUT);
@@ -50,29 +62,9 @@ void loop(){
   serial();
 }
 
-// ============================= Serial Communication =============================
-
-/** Help function that lists the commands available through serial().
- *  Set the line ending to "No line ending"
- * 
- */
-void printHelp(void){
-  Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x positive");
-  Serial.println(" s -> Move x negative");  
-  Serial.println(" a -> Move z negative");
-  Serial.println(" d -> Move z positive");
-  Serial.println(" e -> Toggle y"); 
-  Serial.println(" q -> Diagonal away from origin"); 
-  }
-
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- * 
- */
 void serial () {
   int n = 2000;
-  if (Serial.available() > 0){          // Check receive buffer.
+  if (Serial.available() >0){          // Check receive buffer.
     rxChar = Serial.read();            // Save character received. 
     Serial.flush();                    // Clear receive buffer.
   
@@ -92,7 +84,7 @@ void serial () {
         OneStepZ(true);
         delay(2);
       }
-      Serial.println("z++");
+      Serial.println("z--");
       break;
 
     case 's':
@@ -110,24 +102,54 @@ void serial () {
         OneStepZ(false);
         delay(2);
       }
-      Serial.println("z--");
+      Serial.println("z++");
       break;
 
-    case 'e':
-    case 'E':                          // If received 'e' or 'E':
+    case 'f':
+    case 'F':                          // If received 'f' or 'F':
       OneStepY();
       delay(2);
       Serial.println("¬y");
       break;
 
     case 'q':
-    case 'Q':                          // If received 'e' or 'E':
+    case 'Q':                          // If received 'q' or 'Q':
+    for (int i = 0; i<n; i++){
+      OneStepX(false);
+      OneStepZ(true);
+      delay(2);
+    }
+      Serial.println("x++, z--");
+      break;
+
+    case 'e':
+    case 'E':                          // If received 'q' or 'Q':
     for (int i = 0; i<n; i++){
       OneStepX(false);
       OneStepZ(false);
       delay(2);
     }
-      Serial.println("q--");
+      Serial.println("x++, z++");
+      break;
+      
+    case 'z':
+    case 'Z':                          // If received 'z' or 'Z':
+    for (int i = 0; i<n; i++){
+      OneStepX(true);
+      OneStepZ(true);
+      delay(2);
+    }
+      Serial.println("x--, z--");
+      break;
+      
+    case 'c':
+    case 'C':                          // If received 'z' or 'Z':
+    for (int i = 0; i<n; i++){
+      OneStepX(true);
+      OneStepZ(false);
+      delay(2);
+    }
+      Serial.println("x--, z++");
       break;
 
     default:
@@ -136,10 +158,21 @@ void serial () {
   }
 }
 
-// ============================= Engine Functions =============================
+void move_x (int steps) {
+  int dx = current_x-steps;
+  bool dir = true;
+  if (dx > 0) {
+    dir = true;
+  } else {
+    dir = false;
+    false;
+  }
+  for (int i = 0; i<abs(dx); i++){
+    OneStepX(dir);
+    delay(2);
+  }
+}
 
-/** Demo function that moves both X and Z axys at the same time
-*/
 void demo() {
   for (int i = 0; i<4000; i++){
     OneStepX(true);
@@ -153,10 +186,7 @@ void demo() {
   }
 }
 
-/** One step for the X-axys. Add to a for loop ~500 iterations
- *  
- *  bool dir: direction of movement of the motor
- */
+
 void OneStepX(bool dir){
   if(dir){
     switch(step_number_x ){
@@ -218,10 +248,6 @@ void OneStepX(bool dir){
     }
 }
 
-/** One step for the Z-axys. Add to a for loop ~500 iterations
- *  
- *  bool dir: direction of movement of the motor
- */
 void OneStepZ(bool dir){
   if(dir){
     switch(step_number_z){
@@ -283,8 +309,6 @@ void OneStepZ(bool dir){
     }
 }
 
-/** One step for the Y-axys. Toggles the position of the writer head
- */
 void OneStepY () {
   if (current_y){
       myservo.write(0);              // tell servo to go to step_number_yition in variable 'step_number_y'

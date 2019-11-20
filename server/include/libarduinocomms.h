@@ -14,6 +14,8 @@ typedef struct{
 	const char* filename;
 	FILE* ptr;
 	char opened;
+	fpos_t pos_start;
+
 } arduino_t;
 
 int arduino_init(arduino_t* interface, const char* filename);

@@ -33,7 +33,7 @@
 #define TURN_WAITING    2
 
 #define ARDUINO_ACK     'A'
-#define ARDUINO_ON      0
+#define ARDUINO_ON      1
 
 typedef struct{
 	char username0[128];
@@ -51,6 +51,7 @@ typedef struct{
     int game_over;
     int game_win;
     int arduino_on;
+    int arduino_first;
     arduino_t* arduino;
 
 } game_t;

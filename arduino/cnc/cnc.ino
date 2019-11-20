@@ -6,7 +6,7 @@
 #define STEPPER_PIN_X3 11
 #define STEPPER_PIN_X4 12
 int current_x = 0;
-int max_x = 10000;
+int max_x = 12000;
 
 // Z axys - bridge
 #define STEPPER_PIN_Z1 5
@@ -14,7 +14,7 @@ int max_x = 10000;
 #define STEPPER_PIN_Z3 7
 #define STEPPER_PIN_Z4 8
 int current_z = 0;
-int max_z = 10000;
+int max_z = 16000;
 
 // Y axys - pilot
 #define SERVO_PIN_Y1 3
@@ -27,150 +27,48 @@ int step_number_y = 0;
 int step_number_z = 0;
 
 // UART communication
-char rxChar= 0;         // RXcHAR holds the received command.
+char rxChar = 0;         // RXcHAR holds the received command.
+String command;
+int pageSize = 0;
 
-// ============================= Default Arduino Functions =============================
-void setup() {
-  pinMode(STEPPER_PIN_X1, OUTPUT);
-  pinMode(STEPPER_PIN_X2, OUTPUT);
-  pinMode(STEPPER_PIN_X3, OUTPUT);
-  pinMode(STEPPER_PIN_X4, OUTPUT);
-  pinMode(STEPPER_PIN_Z1, OUTPUT);
-  pinMode(STEPPER_PIN_Z2, OUTPUT);
-  pinMode(STEPPER_PIN_Z3, OUTPUT);
-  pinMode(STEPPER_PIN_Z4, OUTPUT);
-  myservo.attach(SERVO_PIN_Y1);
-  
-  Serial.begin(9600);   // Open serial port (9600 bauds).
-  Serial.flush();       // Clear receive buffer.
-  printHelp();          // Print the command list.
+
+// m 0, 1, 2  
+//   3, 4, 5 
+//   6, 7, 8 
+// Coords           {l,     m,     s}
+int square_x [27] = { 2000, 2000, 1500,
+                      2000, 2000, 1500,
+                      2000, 2000, 1500,
+                      5500, 4500, 3000,
+                      5500, 4500, 3000,
+                      5500, 4500, 3000,
+                      9500, 6500, 4500,
+                      9500, 6500, 4500,
+                      9500, 6500, 4500};
+
+int square_z [27] = {10000, 8500, 6000,
+                      7000, 6500, 4500,
+                      3000, 4000, 3000,
+                     10000, 8500, 6000, 
+                      7000, 6500, 4500,
+                      3000, 4000, 3000,
+                     10000, 8500, 6000,
+                      7000, 6500, 4500,
+                      3000, 4000, 3000};
+
+int get_square_x(int row, int col){
+  return square_x[row*3+col];
 }
 
-void loop(){
-  serial();
+int get_square_z(int row, int col){
+  return square_z[row*3+col];
 }
 
-// ============================= Serial Communication =============================
-
-/** Help function that lists the commands available through serial().
- *  Set the line ending to "No line ending"
- * 
- */
-void printHelp(void){
-  Serial.println("---- Command list: ----");
-  Serial.println(" w -> Move x step_number_yitive");
-  Serial.println(" a -> Move z step_number_yitive");
-  Serial.println(" d -> Move x negative");
-  Serial.println(" s -> Move z negative");  
-  Serial.println(" e -> Toggle y"); 
-  Serial.println(" q -> Diagonal away from origin"); 
-  }
-
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- * 
- */
-void serial () {
-  int n = 2000;
-  if (Serial.available() >0){          // Check receive buffer.
-    rxChar = Serial.read();            // Save character received. 
-    Serial.flush();                    // Clear receive buffer.
-  
-  switch (rxChar) {
-    case 'w':
-    case 'W':
-      for (int i = 0; i<n; i++){
-        OneStepX(false);
-        delay(2);
-      }
-      Serial.println("x++");
-      break;
-      
-    case 'a':
-    case 'A':
-      for (int i = 0; i<n; i++){
-        OneStepZ(true);
-        delay(2);
-      }
-      Serial.println("z++");
-      break;
-
-    case 's':
-    case 'S':                          // If received  's' or 'S':
-      for (int i = 0; i<n; i++){
-        OneStepX(true);
-        delay(2);
-      }
-      Serial.println("x--");
-      break;
-
-    case 'd':
-    case 'D':                          // If received 'd' or 'D':
-      for (int i = 0; i<n; i++){
-        OneStepZ(false);
-        delay(2);
-      }
-      Serial.println("z--");
-      break;
-
-    case 'e':
-    case 'E':                          // If received 'e' or 'E':
-      OneStepY();
-      delay(2);
-      Serial.println("¬y");
-      break;
-
-    case 'q':
-    case 'Q':                          // If received 'e' or 'E':
-    for (int i = 0; i<n; i++){
-      OneStepX(false);
-      OneStepZ(false);
-      delay(2);
-    }
-      Serial.println("q--");
-      break;
-
-    default:
-      Serial.println("Input is not a command!");
-    }
-  }
-}
-
-/** Serial communication with the cnc machine for manual control.
- *  Set the line ending to "No line ending"
- *  Prints "P" when done
- */
-void driver () {
-  int n = 2000;
-  if (Serial.available() >0){          // Check receive buffer.
-    rxChar = Serial.read();            // Save character received. 
-    Serial.flush();                    // Clear receive buffer.
-  
-  switch (rxChar) {
-    case 'x':
-    case 'X':
-      move_x(5000);
-      Serial.println("P");
-      break;
-      
-    case 'z':
-    case 'Z':
-      move_z(5000);
-      Serial.println("P");
-      break;
-
-    case 'd':
-    case 'D':                          // If received  's' or 'S':
-      drawFig(0);
-      Serial.println("P");
-      break;
-
-    default:
-      Serial.println("Input is not a command!");
-      Serial.println("P");
-    }
-  }
-}
+// ============================= Forward Declarations =============================
+void resetY ();
+void OneStepX(bool dir);
+void OneStepY();
+void OneStepZ(bool dir);
 
 // ============================= Smart Movement Functions =============================
 
@@ -178,70 +76,94 @@ void driver () {
  * 
  */
 void calibrate(int pageSize) {
-  OneStepY();
   current_x = 0;
-  current_y = 0;
   current_z = 0;
+  resetY();
+}
 
-  max_x = pageSize;
-  max_z = pageSize;
+void reset () {
+  move_x(0);
+  move_z(0);
+  for (int i = 0; i<2000; i++){ //Extra in case it gets stuck
+    OneStepX(true);
+    OneStepZ(true);
+    delay(2);
+  }
+  resetY();
 }
 
 /** Move in x, checks if within drawing space, updates location of the head 
  * 
  */
 void move_x (int target) {
-  int dx = current_x-target;
-  bool dir = false;
+  int dx = target - current_x;
   if (dx < 0) {
-    dir = true;
-  }
-  int target = current_x+dx;
-  if (target<0 & target>max_x) {
-    Serial.println("Ilegal movement");
-  } else {
-    current_x += dx;
     for (int i = 0; i<abs(dx); i++){
-      OneStepX(dir);
-      delay(2);
-    }
-    Serial.println(current_x);
+        OneStepX(true);
+        delay(2);
+      }
+  } else {
+    for (int i = 0; i<abs(dx); i++){
+        OneStepX(false);
+        delay(2);
+      }
   }
+  current_x = target;
+  //Serial.println(current_x);
 }
 
 /** Move in z, checks if within drawing space, updates location of the head 
  * 
  */
 void move_z (int target) {
-  int dz = current_z-target;
-  bool dir = false;
+  int dz = target - current_z;
   if (dz < 0) {
-    dir = true;
-  }
-  int target = current_z+dz;
-  if (target<0 & target>max_z) {
-    Serial.println("Ilegal movement");
-  } else {
-    current_z += dz;
     for (int i = 0; i<abs(dz); i++){
-      OneStepZ(dir);
-      delay(2);
-    }
-    Serial.println(current_z);
+        OneStepZ(true);
+        delay(2);
+      }
+  } else {
+    for (int i = 0; i<abs(dz); i++){
+        OneStepZ(false);
+        delay(2);
+      }
+  }
+    current_z = target;
+    //Serial.println(current_z);
+  }
+
+int getLineSize () {
+  //int lineSize = 3000;
+  if (pageSize == 1) {
+    return 1830; // lineSize*0.61;
+  } else  if (pageSize == 2) {
+    return 1200; //lineSize*0.35;
+  } else {
+    return 3000; //lineSize;
   }
 }
-
 /** First symbol 
  *  
  */
-void drawLine(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawLine(){
+  //Serial.println("Drawing line");
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize-750; i++){  // Center the line
+    OneStepZ(false);
+    delay(2);
+  }
+  OneStepY();     // start writting
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
+    delay(2);
+  }
+    for (int i = 0; i<lineSize-750; i++){
+    OneStepZ(true);
     delay(2);
   }
 }
@@ -249,21 +171,24 @@ void drawLine(int pageSize){
 /** Second symbol 
  *  
  */
-void drawAngle(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawAngle(){
+  OneStepY();     // start writting
+  //Serial.println("Drawing angle");
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<lineSize-500; i++){
     OneStepZ(false);
     delay(2);
   }
   OneStepY();     // stop writting
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
+  for (int i = 0; i<lineSize-500; i++){
     OneStepZ(true);
     delay(2);
   }
@@ -272,48 +197,178 @@ void drawAngle(int pageSize){
 /** Third symbol 
  *  
  */
-void drawTriangle(int pageSize){
-  for (int i = 0; i<pageSize*1000; i++){
+void drawTriangle(){
+  OneStepY();     // start writting
+  //Serial.println("Drawing triangle");
+  int lineSize = getLineSize();
+  for (int i = 0; i<lineSize; i++){
     OneStepX(false);
     OneStepZ(false);
     delay(2);
   }
-  for (int i = 0; i<pageSize*1000; i++){
-    OneStepX(false);
+  for (int i = 0; i<lineSize; i++){
     OneStepZ(true);
     delay(2);
   }
-  for (int i = 0; i<pageSize*2000; i++){
+  for (int i = 0; i<lineSize; i++){
     OneStepX(true);
     delay(2);
   }
   OneStepY();     // stop writting
 }
 
+void drawStraight (bool dir, int lineSize) {
+  if (dir) {  // vertical (x)
+    for (int i = 0; i<lineSize-750; i++){  // Center the line
+      OneStepZ(false);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<lineSize*4; i++){
+      OneStepX(false);
+      delay(2);
+    }
+    OneStepY();     // stop writting
+  } else { // horizontal (dir == 0, z)
+    for (int i = 0; i<lineSize-750; i++){  // Center the line
+      OneStepX(false);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<lineSize*4; i++){
+      OneStepZ(false);
+      delay(2);
+    }
+    OneStepY();     // stop writting
+  }
+}
+
+void drawWinner(int winLine){
+  int target = getLineSize();
+  int new_x = 0;
+  int new_z = 0;
+  if (winLine == 6) {    // diagonal
+    new_x = get_square_x(0, pageSize);
+    new_z = get_square_z(0, pageSize);
+    move_x(new_x);
+    move_z(new_z);
+    current_x = new_x;
+    current_z = new_z;
+    for (int i = 0; i<target; i++){
+      OneStepZ(false);
+      delay(2);
+    }
+    OneStepY();     // start writting
+    for (int i = 0; i<target*4; i++){
+      OneStepX(false);
+      OneStepZ(true);
+      current_x += target;
+      current_z += target;
+      delay(2);
+    }
+    OneStepY();     // stop writting
+  } else if (winLine == 7) {    // diagonal
+      new_x = get_square_x(2, pageSize);
+      new_z = get_square_z(2, pageSize);
+      move_x(new_x);
+      move_z(new_z);    
+      current_x = new_x;
+      current_z = new_z;
+      OneStepY();     // start writting
+      for (int i = 0; i<target*4; i++){
+        OneStepX(false);
+        OneStepZ(false);
+        current_x += target;
+        current_z += target;
+        delay(2);
+      }
+      OneStepY();     // stop writting
+    } else {    // straights
+      switch (winLine) {
+        case 0: 
+          new_x = get_square_x(2, pageSize);
+          new_z = get_square_z(2, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;
+          drawStraight(0, target);
+          break;
+        case 1: 
+          new_x = get_square_x(5, pageSize);
+          new_z = get_square_z(5, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
+          drawStraight(0, target);
+          break;
+        case 2: 
+          new_x = get_square_x(8, pageSize);
+          new_z = get_square_z(8, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
+          drawStraight(0, target);
+          break;
+        case 3: 
+          new_x = get_square_x(0, pageSize);
+          new_z = get_square_z(0, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
+          drawStraight(1, target);
+          break;
+        case 4: 
+          new_x = get_square_x(1, pageSize);
+          new_z = get_square_z(1, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
+          drawStraight(1, target);
+          break;
+        case 5: 
+          new_x = get_square_x(2, pageSize);
+          new_z = get_square_z(2, pageSize);
+          move_x(new_x);
+          move_z(new_z);
+          current_x = new_x;
+          current_z = new_z;          
+          drawStraight(1, target);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+
 /** Choose a figure to draw
  * 
  */
-void drawFig(int fig, int pageSize) {
-  OneStepY();     // start writting
-  switch(fig):
+void drawFig(int fig) {
+  switch(fig) {
     case 0:
-      drawLine(pageSize);
+      drawLine();
       break;
     case 1:
-      drawAngle(pageSize);
+      drawAngle();
       break;
     case 2:
-      drawTriangle(pageSize);
+      drawTriangle();
       break;
     default:
       OneStepY();     // stop writting (dot)
-      break; 
+      break;
+  }
+   resetY();
+   //Serial.println("A");
 }
 
 // ============================= Engine Functions =============================
-
-/** Demo function that moves both X and Z axys at the same time
-*/
 void demo() {
   for (int i = 0; i<4000; i++){
     OneStepX(true);
@@ -470,3 +525,108 @@ void OneStepY () {
     current_y = 1;
     }
   }
+
+void resetY () {
+    myservo.write(0);              // tell servo to go to step_number_yition in variable 'step_number_y'
+    delay(15);                       // waits 15ms for the servo to reach the step_number_yition
+    current_y = 0;
+  }
+
+// ============================= Serial Communication =============================
+void split(String input, char delimiter, String* results){
+ int t = 0;
+ int r = 0;
+ int i = 0;
+ for (i=0; i < input.length(); i++){
+   if(input.charAt(i) == delimiter && input.charAt(i) != '\n') {
+     results[t] = input.substring(r, i);
+     r=(i+1);
+     t++;
+   }
+ } 
+ results[t] = input.substring(r, i);
+}
+
+void analize_command(String command){
+  if (command=="s0") {
+    max_x = 12000;
+    max_z = 16000;
+    pageSize = 0;
+    //Serial.println("A");
+  } else if (command=="s1") {
+    max_x = 12000;
+    max_z = 8000;
+    pageSize = 1;
+    //Serial.println("A");
+  }
+  else if (command=="s2") {
+    max_x = 6000;
+    max_z = 8000;
+    pageSize = 2;
+    //Serial.println("A");
+  } else if (command=="c") {
+    OneStepY();
+    //Serial.println("A");
+  } else if (command=="r") {
+    reset();
+    //Serial.println("A");
+  } else if (command.charAt(0)=='w'){
+    //Serial.println("A");
+    int winLine = command.charAt(1) - '0';
+    if (winLine >= 0 && winLine <= 7) {
+      drawWinner(winLine);
+      //Serial.println("A");
+    }
+  } else {
+    int symbol = command.charAt(0) - '0';
+    int square = command.charAt(1) - '0';
+
+    if (symbol >= 0 && symbol <= 2) {
+      if (square >= 0 && square <= 8) {
+      int new_x = get_square_x(square, pageSize);
+      int new_z = get_square_z(square, pageSize);
+      //Serial.println(symbol);
+      //Serial.println(square);
+      move_x(new_x);
+      move_z(new_z);
+      drawFig(symbol);
+      Serial.println("A");
+      }
+    }
+  }
+}
+
+  // ============================= Default Arduino Functions =============================
+void setup() {
+  pinMode(STEPPER_PIN_X1, OUTPUT);
+  pinMode(STEPPER_PIN_X2, OUTPUT);
+  pinMode(STEPPER_PIN_X3, OUTPUT);
+  pinMode(STEPPER_PIN_X4, OUTPUT);
+  pinMode(STEPPER_PIN_Z1, OUTPUT);
+  pinMode(STEPPER_PIN_Z2, OUTPUT);
+  pinMode(STEPPER_PIN_Z3, OUTPUT);
+  pinMode(STEPPER_PIN_Z4, OUTPUT);
+  myservo.attach(SERVO_PIN_Y1);
+  Serial.begin(9600);   // Open serial port (9600 bauds).
+  Serial.flush();       // Clear receive buffer.
+  //printHelp();        // Print the command list.
+
+  resetY();
+}
+
+void loop() {
+ // put your main code here, to run repeatedly:
+  while(true){
+    if(Serial.available()){
+      char c = Serial.read();
+   if(c == '\n' || c == '\r') break;
+   command += c;
+    }
+ }
+ if(command.length() > 0){
+  Serial.flush();
+   analize_command(command);
+   //Serial.println(command);
+ }
+ command = "";
+}
