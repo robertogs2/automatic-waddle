@@ -175,7 +175,7 @@ uint8_t set_game_params(char *key, char *value, server_t *server) {
         if(server->game->size == -1) {
             server->game->size = atoi(value);
             char to_send[8];
-            sprintf(to_send, "s%d\n",server->game->size);
+            sprintf(to_send, "s%d\n", server->game->size);
             if(ARDUINO_ON) {
                 uint8_t n = arduino_sendstring(server->game->arduino, to_send);
             }
@@ -325,25 +325,22 @@ uint8_t send_status(client_t *client, server_t *server) { // This updates the st
                     uint8_t n = arduino_sendstring(server->game->arduino, to_send);
                     game->arduino_on = 1;
                 }
-                game->game_over = 2;
             }
+            game->game_over = 2;
         } else if(game->game_over == 1 && game->turn == TURN_WAITING) { // Set to not waiting
             printf("Game over and not sending it to arduino\n");
             game->turn = 69420; // random number not turn waiting
-        }
-        else{
+        } else if(game->game_over == 2){
             printf("Game done!\n");
             arduino_sendstring(server->game->arduino, "r\nr\nr\n");
             arduino_sendstring(server->game->arduino, "r\nr\nr\n");
-            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
-            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
-            arduino_sendstring(server->game->arduino, "r\nr\nr\n");
-            init_game(server);
+            arduino_sendstring(server->game->arduino, "r\n");
+            //init_game(server);
+            game->game_over = 3;
         }
-    }
-    else if(game->arduino_first == 1) {
+    } else if(game->arduino_first == 1) {
         server->game->turn = server->game->turn;
-    }else {
+    } else {
         server->game->turn = TURN_WAITING;
     }
 }
